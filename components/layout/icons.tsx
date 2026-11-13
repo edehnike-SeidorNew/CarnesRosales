@@ -121,3 +121,10 @@ export const ScaleIcon = ({ className }: IconProps) => (
     <path d="M5 7 2.5 13a2.6 2.6 0 0 0 5 0zM19 7l-2.5 6a2.6 2.6 0 0 0 5 0z" />
   </Svg>
 );
+
+/** Embudo de filtros. */
+export const FunnelIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M4 5h16l-6.2 7.4V18l-3.6 2v-7.6z" />
+  </Svg>
+);

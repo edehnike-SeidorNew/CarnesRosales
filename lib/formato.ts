@@ -50,3 +50,11 @@ export const BOTON =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-hover";
 export const BOTON_SECUNDARIO =
   "inline-flex items-center justify-center gap-2 rounded-xl border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand-soft";
+
+/** Fecha de hace `dias` días en formato AAAA-MM-DD (hora local). */
+export function haceDiasISO(dias: number): string {
+  const h = new Date();
+  const f = new Date(h.getFullYear(), h.getMonth(), h.getDate() - dias);
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())}`;
+}

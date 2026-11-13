@@ -17,10 +17,27 @@ const NOMBRE_PERIODO: Record<Periodo, string> = {
   anio: "Este año",
 };
 
-const TD = "px-4 py-3";
+/** Para los títulos de las cards: "Total vendido este mes". */
+const EN_PERIODO: Record<Periodo, string> = {
+  todo: "en total",
+  semana: "esta semana",
+  mes: "este mes",
+  trimestre: "este trimestre",
+  semestre: "este semestre",
+  anio: "este año",
+};
 
 /** Tablero: ventas, kilos por corte y cobros del período elegido, más lo que queda por cobrar. */
-export function Inicio({ clientes, movimientos }: { clientes: Cliente[]; movimientos: Movimiento[] }) {
+export function Inicio({
+  clientes,
+  movimientos,
+  productos,
+}: {
+  clientes: Cliente[];
+  movimientos: Movimiento[];
+  /** Catálogo de cortes: cada uno tiene su card aunque no se haya vendido en el período. */
+  productos: string[];
+}) {
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const desde = inicioDePeriodo(periodo);
   const delPeriodo = desde ? movimientos.filter((m) => m.fecha >= desde) : movimientos;
@@ -39,7 +56,11 @@ export function Inicio({ clientes, movimientos }: { clientes: Cliente[]; movimie
       porCorte.set(clave, corte);
     }
   }
-  const cortes = [...porCorte.values()].sort((a, b) => b.kilos - a.kilos);
+  const vendidos = porCorte.size;
+  for (const nombre of productos) {
+    if (!porCorte.has(nombre.toLowerCase())) porCorte.set(nombre.toLowerCase(), { nombre, kilos: 0, importe: 0 });
+  }
+  const cortes = [...porCorte.values()].sort((a, b) => b.kilos - a.kilos || a.nombre.localeCompare(b.nombre, "es"));
   const kilosVendidos = cortes.reduce((t, c) => t + c.kilos, 0);
   const vendido = redondear(cortes.reduce((t, c) => t + c.importe, 0));
 
@@ -110,9 +131,21 @@ export function Inicio({ clientes, movimientos }: { clientes: Cliente[]; movimie
         </p>
 
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Tarjeta titulo="Vendido" valor={pesos(vendido)} nota={`${remitos} ${remitos === 1 ? "remito" : "remitos"}`} />
-          <Tarjeta titulo="Kilos vendidos" valor={`${kilos(kilosVendidos)} kg`} nota={`${cortes.length} ${cortes.length === 1 ? "corte" : "cortes"}`} />
-          <Tarjeta titulo="Cobrado" valor={pesos(cobrado)} nota={`${cantidadPagos} ${cantidadPagos === 1 ? "pago" : "pagos"}`} />
+          <Tarjeta
+            titulo={`Total vendido ${EN_PERIODO[periodo]}`}
+            valor={pesos(vendido)}
+            nota={`Suma de ${remitos} ${remitos === 1 ? "remito" : "remitos"}`}
+          />
+          <Tarjeta
+            titulo={`Kilos vendidos ${EN_PERIODO[periodo]}`}
+            valor={`${kilos(kilosVendidos)} kg`}
+            nota={`Entre ${vendidos} ${vendidos === 1 ? "corte" : "cortes"}`}
+          />
+          <Tarjeta
+            titulo={`Cobrado ${EN_PERIODO[periodo]}`}
+            valor={pesos(cobrado)}
+            nota={`${cantidadPagos} ${cantidadPagos === 1 ? "pago recibido" : "pagos recibidos"}`}
+          />
           <Tarjeta
             titulo="Total a cobrar"
             valor={pesos(totalACobrar)}
@@ -121,45 +154,34 @@ export function Inicio({ clientes, movimientos }: { clientes: Cliente[]; movimie
           />
         </div>
 
-        <h2 className="mb-3 text-lg font-bold text-brand">Kilos vendidos por corte</h2>
+        <h2 className="mb-3 text-lg font-bold text-brand">Kilos vendidos por corte {EN_PERIODO[periodo]}</h2>
         {cortes.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-brand-border bg-white p-10 text-sm text-slate-500">
             <ScaleIcon className="h-6 w-6" />
-            No hay ventas en este período.
+            Todavía no hay cortes cargados.
           </div>
         ) : (
-          <section className="overflow-hidden rounded-lg border border-brand-border bg-white">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[560px] text-left text-sm">
-                <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
-                  <tr>
-                    <th className={`${TD} font-semibold`}>Corte</th>
-                    <th className={`${TD} text-right font-semibold`}>Kilos</th>
-                    <th className={`${TD} text-right font-semibold`}>Importe</th>
-                    <th className={`${TD} text-right font-semibold`}>Precio promedio</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-border">
-                  {cortes.map((c) => (
-                    <tr key={c.nombre}>
-                      <td className={`${TD} font-semibold text-slate-900`}>{c.nombre}</td>
-                      <td className={`${TD} text-right tabular-nums text-slate-800`}>{kilos(c.kilos)}</td>
-                      <td className={`${TD} text-right tabular-nums text-slate-800`}>{pesos(c.importe)}</td>
-                      <td className={`${TD} text-right tabular-nums text-slate-800`}>{pesos(c.importe / c.kilos)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot className="border-t border-brand-border bg-brand-soft/60 font-semibold text-slate-900">
-                  <tr>
-                    <td className={TD}>Total</td>
-                    <td className={`${TD} text-right tabular-nums`}>{kilos(kilosVendidos)}</td>
-                    <td className={`${TD} text-right tabular-nums`}>{pesos(vendido)}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </section>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {cortes.map((c) => (
+              <div key={c.nombre} className={`rounded-2xl border border-brand-border bg-white p-4 ${c.kilos === 0 ? "opacity-60" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                    <ScaleIcon className="h-4 w-4" />
+                  </span>
+                  <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{c.nombre}</p>
+                </div>
+                <p className="mt-3 text-xl font-bold tabular-nums text-slate-900">{kilos(c.kilos)} kg</p>
+                {c.kilos > 0 ? (
+                  <>
+                    <p className="mt-0.5 text-sm tabular-nums text-slate-700">{pesos(c.importe)}</p>
+                    <p className="mt-0.5 text-xs tabular-nums text-slate-500">Promedio {pesos(c.importe / c.kilos)} por kilo</p>
+                  </>
+                ) : (
+                  <p className="mt-0.5 text-xs text-slate-500">Sin ventas en el período</p>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
