@@ -33,7 +33,7 @@ export const MOVIMIENTOS: Movimiento[] = [
       { detalle: "Vacíos", kilos: 9.6, precio: 16500 },
     ],
   },
-  { id: "m3", clienteId: "1", fecha: "2026-10-22", tipo: "pago", comprobante: "5539", importe: 100000 },
+  { id: "m3", clienteId: "1", fecha: "2026-10-22", tipo: "pago", comprobante: "5539", importe: 100000, medioPago: null },
   {
     id: "m4",
     clienteId: "1",
@@ -42,8 +42,8 @@ export const MOVIMIENTOS: Movimiento[] = [
     comprobante: "5889",
     items: [{ detalle: "Picada", kilos: 10, precio: 12500 }],
   },
-  { id: "m5", clienteId: "1", fecha: "2026-10-23", tipo: "pago", comprobante: "5970", importe: 100000 },
-  { id: "m6", clienteId: "1", fecha: "2026-10-26", tipo: "pago", comprobante: "5542", importe: 180000 },
+  { id: "m5", clienteId: "1", fecha: "2026-10-23", tipo: "pago", comprobante: "5970", importe: 100000, medioPago: null },
+  { id: "m6", clienteId: "1", fecha: "2026-10-26", tipo: "pago", comprobante: "5542", importe: 180000, medioPago: null },
   {
     id: "m7",
     clienteId: "1",

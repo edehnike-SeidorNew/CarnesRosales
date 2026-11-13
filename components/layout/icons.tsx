@@ -100,3 +100,24 @@ export const RefreshIcon = ({ className }: IconProps) => (
     <path d="M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4" />
   </Svg>
 );
+
+export const LogoutIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M14 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2" />
+    <path d="M9 12h12l-3-3M18 15l3-3" />
+  </Svg>
+);
+
+export const HomeIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M4 11.5 12 4l8 7.5" />
+    <path d="M6 10v9a1 1 0 0 0 1 1h3v-5h4v5h3a1 1 0 0 0 1-1v-9" />
+  </Svg>
+);
+
+export const ScaleIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M12 4v16M7 20h10M5 7h14" />
+    <path d="M5 7 2.5 13a2.6 2.6 0 0 0 5 0zM19 7l-2.5 6a2.6 2.6 0 0 0 5 0z" />
+  </Svg>
+);

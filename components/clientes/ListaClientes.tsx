@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { crearCliente } from "@/app/acciones";
 import { CardLateral } from "@/components/layout/CardLateral";
 import { UserPlusIcon, UsersIcon } from "@/components/layout/icons";
 import { PanelOpciones } from "@/components/layout/PanelOpciones";
 import { BOTON, BOTON_SECUNDARIO, CAMPO, pesos } from "@/lib/formato";
-import { agregarCliente, useDatos } from "@/lib/store";
-import { saldoDe, type NuevoCliente } from "@/lib/tipos";
+import { saldoDe, type Cliente, type Movimiento, type NuevoCliente } from "@/lib/tipos";
 import { Campo, Iniciales, Lista } from "./comunes";
 
 const OPCIONES = [
@@ -27,9 +27,11 @@ const CLIENTE_VACIO: NuevoCliente = {
   observaciones: "",
 };
 
-function FormCliente({ onGuardar, onCancelar }: { onGuardar: (datos: NuevoCliente) => void; onCancelar: () => void }) {
+function FormCliente({ onCancelar }: { onCancelar: () => void }) {
+  const router = useRouter();
   const [datos, setDatos] = useState<NuevoCliente>(CLIENTE_VACIO);
   const [error, setError] = useState("");
+  const [guardando, iniciar] = useTransition();
 
   const cambiar = (campo: keyof NuevoCliente) => (e: { target: { value: string } }) =>
     setDatos((d) => ({ ...d, [campo]: e.target.value }));
@@ -40,7 +42,12 @@ function FormCliente({ onGuardar, onCancelar }: { onGuardar: (datos: NuevoClient
       setError("Ingresá el nombre de fantasía.");
       return;
     }
-    onGuardar({ ...datos, nombreFantasia: datos.nombreFantasia.trim() });
+    setError("");
+    iniciar(async () => {
+      const r = await crearCliente(datos);
+      if (r.ok) router.push(`/clientes/${r.dato.id}`);
+      else setError(r.error);
+    });
   }
 
   return (
@@ -72,8 +79,8 @@ function FormCliente({ onGuardar, onCancelar }: { onGuardar: (datos: NuevoClient
       {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
 
       <div className="mt-5 flex flex-wrap gap-3">
-        <button type="submit" className={BOTON}>
-          Guardar cliente
+        <button type="submit" disabled={guardando} className={`${BOTON} disabled:opacity-60`}>
+          {guardando ? "Guardando..." : "Guardar cliente"}
         </button>
         <button type="button" onClick={onCancelar} className={BOTON_SECUNDARIO}>
           Cancelar
@@ -84,9 +91,8 @@ function FormCliente({ onGuardar, onCancelar }: { onGuardar: (datos: NuevoClient
 }
 
 /** Lista de clientes con buscador y saldo; al tocar un cliente se abre su cuenta corriente. */
-export function ListaClientes() {
+export function ListaClientes({ clientes, movimientos }: { clientes: Cliente[]; movimientos: Movimiento[] }) {
   const router = useRouter();
-  const { clientes, movimientos } = useDatos();
   const [vista, setVista] = useState<VistaId>("lista");
   const [busqueda, setBusqueda] = useState("");
 
@@ -99,11 +105,6 @@ export function ListaClientes() {
   );
   const totalACobrar = conSaldo.reduce((total, { saldo }) => total + saldo, 0);
   const conDeuda = conSaldo.filter(({ saldo }) => saldo > 0).length;
-
-  function crear(datos: NuevoCliente) {
-    const nuevo = agregarCliente(datos);
-    router.push(`/clientes/${nuevo.id}`);
-  }
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
@@ -123,7 +124,7 @@ export function ListaClientes() {
         <h1 className="mb-6 text-2xl font-bold text-brand">{vista === "nuevo" ? "Nuevo cliente" : "Clientes"}</h1>
 
         {vista === "nuevo" ? (
-          <FormCliente onGuardar={crear} onCancelar={() => setVista("lista")} />
+          <FormCliente onCancelar={() => setVista("lista")} />
         ) : (
           <section className="overflow-hidden rounded-lg border border-brand-border bg-white">
             <div className="flex flex-wrap items-center gap-3 border-b border-brand-border p-4">
@@ -147,7 +148,7 @@ export function ListaClientes() {
                     <th className="w-12 px-4 py-3 font-semibold">N°</th>
                     <th className="px-4 py-3 font-semibold">Cliente</th>
                     <th className="px-4 py-3 font-semibold">Localidad</th>
-                    <th className="px-4 py-3 text-right font-semibold">Saldo</th>
+                    <th className="px-4 py-3 text-right font-semibold">Saldo adeudado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border">
@@ -180,7 +181,7 @@ export function ListaClientes() {
               {filtrados.length === 0 && (
                 <div className="flex flex-col items-center gap-2 p-10 text-sm text-slate-500">
                   <UsersIcon className="h-6 w-6" />
-                  No hay clientes que coincidan con la búsqueda.
+                  {clientes.length === 0 ? "Todavía no hay clientes cargados." : "No hay clientes que coincidan con la búsqueda."}
                 </div>
               )}
             </div>

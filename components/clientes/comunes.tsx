@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PERIODOS, type Periodo } from "@/lib/formato";
 
 /** Pares etiqueta / valor, como en las cards laterales de Ezmel. */
 export function Lista({ filas }: { filas: [string, string][] }) {
@@ -34,5 +35,47 @@ export function Campo({ label, children, className = "" }: { label: string; chil
       <span className="mb-1 block font-medium text-slate-700">{label}</span>
       {children}
     </label>
+  );
+}
+
+export function Tarjeta({ titulo, valor, nota, destacada = false }: { titulo: string; valor: string; nota?: string; destacada?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${destacada ? "border-brand bg-brand text-white" : "border-brand-border bg-white"}`}>
+      <p className={`text-xs font-semibold uppercase tracking-wide ${destacada ? "text-white/70" : "text-slate-500"}`}>{titulo}</p>
+      <p className={`mt-1 text-xl font-bold tabular-nums ${destacada ? "text-white" : "text-slate-900"}`}>{valor}</p>
+      {nota && <p className={`mt-0.5 text-xs ${destacada ? "text-white/70" : "text-slate-500"}`}>{nota}</p>}
+    </div>
+  );
+}
+
+/** Badges para elegir el período (semana, mes, trimestre, semestre, año). */
+export function FiltroPeriodo({
+  periodo,
+  onChange,
+  conTodo = true,
+}: {
+  periodo: Periodo;
+  onChange: (p: Periodo) => void;
+  conTodo?: boolean;
+}) {
+  return (
+    <div role="group" aria-label="Filtrar por período" className="flex flex-wrap gap-1.5">
+      {PERIODOS.filter((p) => conTodo || p.id !== "todo").map(({ id, label }) => {
+        const activo = id === periodo;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            aria-pressed={activo}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 transition-colors ${
+              activo ? "bg-brand text-white ring-brand" : "bg-white text-slate-600 ring-brand-border hover:bg-brand-soft hover:text-brand"
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

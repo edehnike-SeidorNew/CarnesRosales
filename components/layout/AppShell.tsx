@@ -3,14 +3,17 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { restablecerDatos } from "@/lib/store";
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, MenuIcon, RefreshIcon, UsersIcon } from "./icons";
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, UsersIcon } from "./icons";
 
 // Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
 type IconType = (props: { className?: string }) => ReactNode;
 type NavItem = { href: string; label: string; Icon: IconType };
 
-const SECTIONS: NavItem[] = [{ href: "/clientes", label: "Clientes", Icon: UsersIcon }];
+const SECTIONS: NavItem[] = [
+  { href: "/", label: "Inicio", Icon: HomeIcon },
+  { href: "/clientes", label: "Clientes", Icon: UsersIcon },
+];
 
 const CLAVE_MENU = "carnes_rosales_menu_colapsado";
 let menuEnMemoria: boolean | null = null; // por si el navegador no deja usar localStorage
@@ -67,12 +70,13 @@ function Marca({ compacta = false }: { compacta?: boolean }) {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ email, mock, children }: { email: string; mock: boolean; children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   // Menú de escritorio plegado (sólo íconos). En celular se usa siempre el desplegable.
   const colapsado = useSyncExternalStore(suscribirMenu, leerMenuColapsado, () => false);
   const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+  const inicial = (email.trim().charAt(0) || "U").toUpperCase();
 
   function mostrarTip(e: { currentTarget: HTMLElement }, label: string, siempre = false) {
     if (!colapsado && !siempre) return;
@@ -83,10 +87,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   function alternarMenu() {
     setTip(null);
     guardarMenuColapsado(!colapsado);
-  }
-
-  function restablecer() {
-    if (window.confirm("¿Volver a los datos de ejemplo? Se borra lo que cargaste en esta demo.")) restablecerDatos();
   }
 
   function navLink({ href, label, Icon }: NavItem) {
@@ -165,22 +165,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               colapsado ? "md:flex-col md:px-0" : ""
             }`}
           >
-            <div className={`min-w-0 flex-1 ${colapsado ? "md:hidden" : ""}`}>
-              <p className="text-[13px] font-semibold leading-tight">Versión demo</p>
-              <p className="text-xs text-white/70">Datos de ejemplo</p>
-            </div>
-            <button
-              type="button"
-              onClick={restablecer}
-              onMouseEnter={(e) => mostrarTip(e, "Restablecer datos de ejemplo", true)}
-              onFocus={(e) => mostrarTip(e, "Restablecer datos de ejemplo", true)}
-              onMouseLeave={() => setTip(null)}
-              onBlur={() => setTip(null)}
-              aria-label="Restablecer datos de ejemplo"
-              className="rounded-lg p-2 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-sm font-bold text-brand-deep"
+              title={colapsado ? email : undefined}
             >
-              <RefreshIcon className="h-5 w-5" />
-            </button>
+              {inicial}
+            </span>
+            <div className={`min-w-0 flex-1 ${colapsado ? "md:hidden" : ""}`}>
+              <p className="truncate text-[13px] font-semibold leading-tight">{mock ? "Modo demo" : "Sesión iniciada"}</p>
+              <p className="truncate text-xs text-white/75" title={email}>
+                {email}
+              </p>
+            </div>
+            <LogoutButton />
           </div>
         </aside>
 
@@ -196,6 +193,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <main className="min-w-0 flex-1 rounded-t-3xl bg-slate-50 px-4 py-6 [scrollbar-color:#c3c6ea_transparent] [scrollbar-width:thin] md:h-full md:overflow-y-auto md:rounded-3xl md:py-8 md:pl-8 md:pr-4">
+          {mock && (
+            <p className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Modo demo: Supabase no está configurado. Los datos son de ejemplo y lo que cargues se pierde al reiniciar.
+            </p>
+          )}
           {children}
         </main>
       </div>
