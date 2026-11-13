@@ -135,37 +135,24 @@ export function Inicio({ clientes, movimientos }: { clientes: Cliente[]; movimie
                   <tr>
                     <th className={`${TD} font-semibold`}>Corte</th>
                     <th className={`${TD} text-right font-semibold`}>Kilos</th>
-                    <th className={`${TD} w-2/5 font-semibold`}>Parte del total</th>
                     <th className={`${TD} text-right font-semibold`}>Importe</th>
                     <th className={`${TD} text-right font-semibold`}>Precio promedio</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-brand-border">
-                  {cortes.map((c) => {
-                    const parte = kilosVendidos ? (c.kilos / kilosVendidos) * 100 : 0;
-                    return (
-                      <tr key={c.nombre}>
-                        <td className={`${TD} font-semibold text-slate-900`}>{c.nombre}</td>
-                        <td className={`${TD} text-right tabular-nums text-slate-800`}>{kilos(c.kilos)}</td>
-                        <td className={TD}>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 flex-1 rounded-full bg-brand-soft">
-                              <div className="h-full rounded-full bg-brand-mid" style={{ width: `${parte}%` }} />
-                            </div>
-                            <span className="w-12 text-right text-xs tabular-nums text-slate-600">{parte.toFixed(1).replace(".", ",")}%</span>
-                          </div>
-                        </td>
-                        <td className={`${TD} text-right tabular-nums text-slate-800`}>{pesos(c.importe)}</td>
-                        <td className={`${TD} text-right tabular-nums text-slate-800`}>{pesos(c.importe / c.kilos)}</td>
-                      </tr>
-                    );
-                  })}
+                  {cortes.map((c) => (
+                    <tr key={c.nombre}>
+                      <td className={`${TD} font-semibold text-slate-900`}>{c.nombre}</td>
+                      <td className={`${TD} text-right tabular-nums text-slate-800`}>{kilos(c.kilos)}</td>
+                      <td className={`${TD} text-right tabular-nums text-slate-800`}>{pesos(c.importe)}</td>
+                      <td className={`${TD} text-right tabular-nums text-slate-800`}>{pesos(c.importe / c.kilos)}</td>
+                    </tr>
+                  ))}
                 </tbody>
                 <tfoot className="border-t border-brand-border bg-brand-soft/60 font-semibold text-slate-900">
                   <tr>
                     <td className={TD}>Total</td>
                     <td className={`${TD} text-right tabular-nums`}>{kilos(kilosVendidos)}</td>
-                    <td />
                     <td className={`${TD} text-right tabular-nums`}>{pesos(vendido)}</td>
                     <td />
                   </tr>

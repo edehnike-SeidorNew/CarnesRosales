@@ -51,12 +51,13 @@ function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number 
       {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
       <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${borrando ? "opacity-60" : ""}`}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1020px] text-left text-sm">
             <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
               <tr>
                 <th className={`${TD} font-semibold`}>Fecha</th>
                 <th className={`${TD} font-semibold`}>N° comprobante</th>
                 <th className={`${TD} font-semibold`}>Concepto</th>
+                <th className={`${TD} font-semibold`}>Medio de pago</th>
                 <th className={`${TD} text-right font-semibold`}>Kilos</th>
                 <th className={`${TD} text-right font-semibold`}>Precio por kilo</th>
                 <th className={`${TD} text-right font-semibold`}>Subtotal</th>
@@ -88,15 +89,9 @@ function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number 
                       <td className={`${TD} text-slate-500`}>{i === 0 ? m.comprobante : ""}</td>
                       <td className={`${TD} font-medium ${m.tipo === "pago" ? "text-emerald-800" : "text-slate-900"}`}>
                         {r.detalle}
-                        {m.tipo === "pago" && (
-                          <span
-                            className={`ml-2 inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${
-                              m.medioPago ? "bg-white text-emerald-800 ring-emerald-200" : "bg-white text-slate-500 ring-slate-200"
-                            }`}
-                          >
-                            {etiquetaMedio(m.medioPago)}
-                          </span>
-                        )}
+                      </td>
+                      <td className={`${TD} whitespace-nowrap ${m.tipo === "pago" && m.medioPago ? "text-slate-800" : "text-slate-400"}`}>
+                        {m.tipo === "pago" ? etiquetaMedio(m.medioPago) : ""}
                       </td>
                       <td className={`${NUM} text-slate-800`}>{r.kilos}</td>
                       <td className={`${NUM} text-slate-800`}>{r.precio}</td>
