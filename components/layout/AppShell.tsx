@@ -1,0 +1,204 @@
+"use client";
+
+import { useState, useSyncExternalStore, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { restablecerDatos } from "@/lib/store";
+import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, MenuIcon, RefreshIcon, UsersIcon } from "./icons";
+
+// Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
+type IconType = (props: { className?: string }) => ReactNode;
+type NavItem = { href: string; label: string; Icon: IconType };
+
+const SECTIONS: NavItem[] = [{ href: "/clientes", label: "Clientes", Icon: UsersIcon }];
+
+const CLAVE_MENU = "carnes_rosales_menu_colapsado";
+let menuEnMemoria: boolean | null = null; // por si el navegador no deja usar localStorage
+const oyentes = new Set<() => void>();
+
+function leerMenuColapsado(): boolean {
+  try {
+    const guardado = localStorage.getItem(CLAVE_MENU);
+    if (guardado !== null) return guardado === "1";
+  } catch {
+    /* sin almacenamiento: se usa la memoria */
+  }
+  if (menuEnMemoria !== null) return menuEnMemoria;
+  // Sin preferencia guardada: desplegado en computadora y plegado (solo íconos) en tablet.
+  return window.matchMedia("(max-width: 1023px)").matches;
+}
+
+function guardarMenuColapsado(valor: boolean) {
+  menuEnMemoria = valor;
+  try {
+    localStorage.setItem(CLAVE_MENU, valor ? "1" : "0");
+  } catch {
+    /* idem */
+  }
+  oyentes.forEach((avisar) => avisar());
+}
+
+function suscribirMenu(avisar: () => void) {
+  oyentes.add(avisar);
+  window.addEventListener("storage", avisar);
+  window.addEventListener("resize", avisar);
+  return () => {
+    oyentes.delete(avisar);
+    window.removeEventListener("storage", avisar);
+    window.removeEventListener("resize", avisar);
+  };
+}
+
+function Marca({ compacta = false }: { compacta?: boolean }) {
+  const monograma = (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent text-sm font-bold tracking-tight text-brand-deep">
+      CR
+    </span>
+  );
+  if (compacta) return <div className="flex justify-center">{monograma}</div>;
+  return (
+    <div className="flex items-center gap-2.5">
+      {monograma}
+      <div className="leading-tight">
+        <p className="text-base font-bold text-white">Carnes Rosales</p>
+        <p className="text-[11px] uppercase tracking-wider text-white/60">Cuentas corrientes</p>
+      </div>
+    </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+  // Menú de escritorio plegado (sólo íconos). En celular se usa siempre el desplegable.
+  const colapsado = useSyncExternalStore(suscribirMenu, leerMenuColapsado, () => false);
+  const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
+
+  function mostrarTip(e: { currentTarget: HTMLElement }, label: string, siempre = false) {
+    if (!colapsado && !siempre) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 10 });
+  }
+
+  function alternarMenu() {
+    setTip(null);
+    guardarMenuColapsado(!colapsado);
+  }
+
+  function restablecer() {
+    if (window.confirm("¿Volver a los datos de ejemplo? Se borra lo que cargaste en esta demo.")) restablecerDatos();
+  }
+
+  function navLink({ href, label, Icon }: NavItem) {
+    const active = pathname === href || pathname.startsWith(`${href}/`);
+    return (
+      <Link
+        key={href}
+        href={href}
+        onClick={() => setMenuOpen(false)}
+        aria-current={active ? "page" : undefined}
+        aria-label={colapsado ? label : undefined}
+        onMouseEnter={(e) => mostrarTip(e, label)}
+        onFocus={(e) => mostrarTip(e, label)}
+        onMouseLeave={() => setTip(null)}
+        onBlur={() => setTip(null)}
+        className={`flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors ${
+          colapsado ? "md:justify-center md:gap-0 md:px-0" : ""
+        } ${active ? "bg-white/15 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"}`}
+      >
+        <Icon className={`h-5 w-5 shrink-0 ${active ? "text-brand-accent" : ""}`} />
+        <span className={colapsado ? "md:hidden" : ""}>{label}</span>
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex min-h-dvh flex-col bg-brand-mid md:block md:h-screen md:overflow-hidden md:p-3">
+      <div className="flex items-center justify-between px-4 py-3 md:hidden">
+        <Marca />
+        <button
+          type="button"
+          aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+          className="rounded-xl p-2 text-white hover:bg-white/15"
+        >
+          {menuOpen ? <CloseIcon /> : <MenuIcon />}
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col md:h-full md:flex-row md:gap-3">
+        <aside
+          className={`${menuOpen ? "flex" : "hidden"} relative shrink-0 flex-col px-4 pb-4 text-white md:flex md:h-full md:p-0 md:transition-[width] md:duration-200 ${
+            colapsado ? "md:w-16" : "md:w-56"
+          }`}
+        >
+          {/* Flecha para plegar o expandir el menú (sólo escritorio). */}
+          <button
+            type="button"
+            onClick={alternarMenu}
+            onMouseEnter={(e) => mostrarTip(e, colapsado ? "Expandir" : "Contraer", true)}
+            onFocus={(e) => mostrarTip(e, colapsado ? "Expandir" : "Contraer", true)}
+            onMouseLeave={() => setTip(null)}
+            onBlur={() => setTip(null)}
+            aria-label={colapsado ? "Expandir menú" : "Contraer menú"}
+            className={`absolute z-20 hidden h-7 w-7 items-center justify-center rounded-lg text-white/80 transition-colors hover:bg-white/15 hover:text-white md:flex ${
+              colapsado ? "left-1/2 top-[66px] -translate-x-1/2" : "right-0 top-6"
+            }`}
+          >
+            {colapsado ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
+          </button>
+
+          <div className={`hidden pt-5 md:block ${colapsado ? "px-0 pb-14" : "px-3 pb-8"}`}>
+            <Marca compacta={colapsado} />
+          </div>
+
+          <nav
+            aria-label="Secciones"
+            className="flex-1 space-y-1 overflow-y-auto [scrollbar-color:rgba(255,255,255,0.3)_transparent] [scrollbar-width:thin]"
+          >
+            {SECTIONS.map(navLink)}
+          </nav>
+
+          <div
+            className={`mt-2 flex items-center gap-2 border-t border-white/20 px-2 pt-4 ${
+              colapsado ? "md:flex-col md:px-0" : ""
+            }`}
+          >
+            <div className={`min-w-0 flex-1 ${colapsado ? "md:hidden" : ""}`}>
+              <p className="text-[13px] font-semibold leading-tight">Versión demo</p>
+              <p className="text-xs text-white/70">Datos de ejemplo</p>
+            </div>
+            <button
+              type="button"
+              onClick={restablecer}
+              onMouseEnter={(e) => mostrarTip(e, "Restablecer datos de ejemplo", true)}
+              onFocus={(e) => mostrarTip(e, "Restablecer datos de ejemplo", true)}
+              onMouseLeave={() => setTip(null)}
+              onBlur={() => setTip(null)}
+              aria-label="Restablecer datos de ejemplo"
+              className="rounded-lg p-2 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+            >
+              <RefreshIcon className="h-5 w-5" />
+            </button>
+          </div>
+        </aside>
+
+        {/* Nombre de la sección al pasar el mouse con el menú plegado. */}
+        {tip && (
+          <span
+            role="tooltip"
+            style={{ top: tip.top, left: tip.left }}
+            className="pointer-events-none fixed z-50 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-brand-deep px-2.5 py-1.5 text-xs font-medium text-white shadow-lg ring-1 ring-brand-accent/50 md:block"
+          >
+            {tip.label}
+          </span>
+        )}
+
+        <main className="min-w-0 flex-1 rounded-t-3xl bg-slate-50 px-4 py-6 [scrollbar-color:#c3c6ea_transparent] [scrollbar-width:thin] md:h-full md:overflow-y-auto md:rounded-3xl md:py-8 md:pl-8 md:pr-4">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
