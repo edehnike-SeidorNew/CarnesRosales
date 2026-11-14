@@ -199,6 +199,15 @@ export async function fijarPrecio(producto: string, precio: number | null): Prom
   });
 }
 
+export async function crearCorte(nombre: string): Promise<Resultado> {
+  const corte = texto(nombre, 80).replace(/\s+/g, " ");
+  if (!corte) return error("Escribí el nombre del corte.");
+  return ejecutar("cargar", async () => {
+    await repo().crearCorte(corte);
+    return null;
+  });
+}
+
 export async function registrarPagoProveedor(datos: {
   proveedorId: string;
   fecha: string;

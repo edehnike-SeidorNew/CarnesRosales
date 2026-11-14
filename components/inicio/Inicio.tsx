@@ -61,6 +61,7 @@ export function Inicio({
     if (!porCorte.has(nombre.toLowerCase())) porCorte.set(nombre.toLowerCase(), { nombre, kilos: 0, importe: 0 });
   }
   const totalStock = stock.reduce((t, p) => t + p.stock, 0);
+  const hayStock = stock.some((p) => p.desde !== null);
   const cortes = [...porCorte.values()].sort((a, b) => b.kilos - a.kilos || a.nombre.localeCompare(b.nombre, "es"));
   const kilosVendidos = cortes.reduce((t, c) => t + c.kilos, 0);
   const vendido = redondear(cortes.reduce((t, c) => t + c.importe, 0));
@@ -86,7 +87,7 @@ export function Inicio({
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-      <ColumnaLateral fija={false} desplazamiento="xl:mt-[5.5rem]">
+      <ColumnaLateral fija={false} desplazamiento="xl:mt-20">
         <CardLateral titulo="Cobros por medio de pago">
           <dl className="divide-y divide-brand-border">
             {medios.map(({ label, importe }) => (
@@ -185,11 +186,14 @@ export function Inicio({
           </div>
         )}
 
+        {/* El stock es de una etapa posterior: la sección aparece recién cuando se carga mercadería. */}
+        {hayStock && (
+          <>
         <div className="mb-3 mt-8 flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <h2 className="text-lg font-bold text-brand">Stock disponible hoy</h2>
           <span className="text-sm text-slate-500">
             {kilos(totalStock)} kg en total ·{" "}
-            <Link href="/stock" className="font-semibold text-brand hover:underline">
+            <Link href="/stock?desde=inicio" className="font-semibold text-brand hover:underline">
               Ver stock
             </Link>
           </span>
@@ -217,6 +221,8 @@ export function Inicio({
               );
             })}
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

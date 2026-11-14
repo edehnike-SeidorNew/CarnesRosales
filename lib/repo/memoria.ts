@@ -10,6 +10,8 @@ type Estado = {
   clientes: Cliente[];
   movimientos: Movimiento[];
   precios: Map<string, number>;
+  /** Cortes agregados a mano al catálogo. */
+  cortes: string[];
   stock: StockMovimiento[];
   proveedores: Proveedor[];
   pagosProveedores: PagoProveedor[];
@@ -17,12 +19,13 @@ type Estado = {
   invitaciones: Invitacion[];
 };
 
-const global = globalThis as { __carnesRosalesDemo2?: Estado };
+const global = globalThis as { __carnesRosalesDemo3?: Estado };
 // En globalThis para que sobreviva a las recargas de código en desarrollo.
-const estado: Estado = (global.__carnesRosalesDemo2 ??= {
+const estado: Estado = (global.__carnesRosalesDemo3 ??= {
   clientes: [...CLIENTES],
   movimientos: [...MOVIMIENTOS],
   precios: new Map(),
+  cortes: [],
   stock: [],
   proveedores: [],
   pagosProveedores: [],
@@ -44,6 +47,7 @@ function productos(): Producto[] {
     if (m.tipo === "venta") for (const item of m.items) if (!vistos.has(item.detalle.toLowerCase())) vistos.set(item.detalle.toLowerCase(), item.detalle);
   }
   for (const s of estado.stock) if (!vistos.has(s.producto.toLowerCase())) vistos.set(s.producto.toLowerCase(), s.producto);
+  for (const c of estado.cortes) if (!vistos.has(c.toLowerCase())) vistos.set(c.toLowerCase(), c);
   return [...vistos.entries()]
     .map(([clave, nombre]) => ({ nombre, precio: estado.precios.get(clave) ?? null }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
@@ -151,6 +155,11 @@ export const repoMemoria: Repo = {
     const clave = limpio(producto).toLowerCase();
     if (precio === null) estado.precios.delete(clave);
     else estado.precios.set(clave, precio);
+  },
+
+  async crearCorte(nombre) {
+    const corte = nombreDeProducto(nombre);
+    if (!estado.cortes.some((c) => c.toLowerCase() === corte.toLowerCase())) estado.cortes.push(corte);
   },
 
   async registrarPagoProveedor(pago) {

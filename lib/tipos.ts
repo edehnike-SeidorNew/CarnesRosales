@@ -15,8 +15,8 @@ export type Cliente = {
 
 export const MEDIOS_PAGO = [
   { id: "efectivo", label: "Efectivo" },
-  { id: "mercado_pago", label: "Mercado Pago" },
-  { id: "transferencia", label: "Transferencia" },
+  { id: "cheque", label: "Cheque" },
+  { id: "billetera_virtual", label: "Billetera virtual" },
 ] as const;
 
 export type MedioPago = (typeof MEDIOS_PAGO)[number]["id"];
@@ -114,8 +114,11 @@ export function saldoDe(clienteId: string, movimientos: Movimiento[]): number {
 export type StockDeProducto = {
   nombre: string;
   precio: number | null;
+  /** Fecha de la primera carga de stock (null = todavía no se cargó: el stock es cero). */
+  desde: string | null;
   comprado: number;
   ajustes: number;
+  /** Kilos vendidos desde la primera carga. */
   vendido: number;
   /** comprado + ajustes - vendido. Tampoco se guarda. */
   stock: number;
@@ -125,25 +128,27 @@ export type StockDeProducto = {
 
 const kilos3 = (n: number) => Math.round(n * 1000) / 1000;
 
-/** Stock actual de cada corte del catálogo. */
+/**
+ * Stock actual de cada corte del catálogo. Arranca en cero: un corte empieza a llevar stock el día
+ * de su primera carga (compra o ajuste), y sólo descuentan las ventas de ese día en adelante.
+ */
 export function stockPorProducto(datos: Pick<Datos, "productos" | "movimientos" | "stock">): StockDeProducto[] {
   const mapa = new Map<string, StockDeProducto>();
   const de = (nombre: string) => {
     const clave = nombre.toLowerCase();
     let fila = mapa.get(clave);
     if (!fila) {
-      fila = { nombre, precio: null, comprado: 0, ajustes: 0, vendido: 0, stock: 0, ultimoCosto: null };
+      fila = { nombre, precio: null, desde: null, comprado: 0, ajustes: 0, vendido: 0, stock: 0, ultimoCosto: null };
       mapa.set(clave, fila);
     }
     return fila;
   };
   for (const p of datos.productos) de(p.nombre).precio = p.precio;
-  for (const m of datos.movimientos) {
-    if (m.tipo === "venta") for (const item of m.items) de(item.detalle).vendido += item.kilos;
-  }
+
   const ultimaCompra = new Map<string, string>();
   for (const s of datos.stock) {
     const fila = de(s.producto);
+    if (fila.desde === null || s.fecha < fila.desde) fila.desde = s.fecha;
     if (s.tipo === "ajuste") {
       fila.ajustes += s.kilos;
       continue;
@@ -155,6 +160,15 @@ export function stockPorProducto(datos: Pick<Datos, "productos" | "movimientos" 
       fila.ultimoCosto = s.costo;
     }
   }
+
+  for (const m of datos.movimientos) {
+    if (m.tipo !== "venta") continue;
+    for (const item of m.items) {
+      const fila = de(item.detalle);
+      if (fila.desde !== null && m.fecha >= fila.desde) fila.vendido += item.kilos;
+    }
+  }
+
   return [...mapa.values()]
     .map((f) => ({
       ...f,

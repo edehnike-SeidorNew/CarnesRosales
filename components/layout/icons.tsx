@@ -183,3 +183,10 @@ export const SlidersIcon = ({ className }: IconProps) => (
     <circle cx="10" cy="17" r="2" />
   </Svg>
 );
+
+export const CalendarIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+    <path d="M16 3v4M8 3v4M4 11h16" />
+  </Svg>
+);

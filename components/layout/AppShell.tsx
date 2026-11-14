@@ -9,14 +9,14 @@ import { BoxIcon, CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIc
 
 // Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
 type IconType = (props: { className?: string }) => ReactNode;
-type NavItem = { href: string; label: string; Icon: IconType; soloAdmin?: boolean };
+type NavItem = { href: string; label: string; Icon: IconType; soloAdmin?: boolean; /** Sección de una etapa posterior. */ proxima?: boolean };
 
 const SECTIONS: NavItem[] = [
   { href: "/", label: "Inicio", Icon: HomeIcon },
   { href: "/clientes", label: "Clientes", Icon: UsersIcon },
   { href: "/pagos", label: "Pagos", Icon: CashIcon },
-  { href: "/stock", label: "Stock", Icon: BoxIcon },
-  { href: "/proveedores", label: "Proveedores", Icon: TruckIcon },
+  { href: "/stock", label: "Stock", Icon: BoxIcon, proxima: true },
+  { href: "/proveedores", label: "Proveedores", Icon: TruckIcon, proxima: true },
   { href: "/usuarios", label: "Usuarios", Icon: ShieldIcon, soloAdmin: true },
 ];
 
@@ -164,7 +164,13 @@ export function AppShell({ email, rol, mock, children }: { email: string; rol: R
             aria-label="Secciones"
             className="flex-1 space-y-1 overflow-y-auto [scrollbar-color:rgba(255,255,255,0.3)_transparent] [scrollbar-width:thin]"
           >
-            {secciones.map(navLink)}
+            {secciones.filter((s) => !s.proxima).map(navLink)}
+
+            <p className={`px-2.5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-white/60 ${colapsado ? "md:hidden" : ""}`}>
+              Próxima etapa
+            </p>
+            {colapsado && <div aria-hidden className="mx-2 my-3 hidden border-t border-white/20 md:block" />}
+            {secciones.filter((s) => s.proxima).map(navLink)}
           </nav>
 
           <div

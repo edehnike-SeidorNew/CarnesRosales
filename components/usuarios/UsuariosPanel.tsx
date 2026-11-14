@@ -7,6 +7,7 @@ import { useAccion } from "@/components/comun/useAccion";
 import { CardLateral } from "@/components/layout/CardLateral";
 import { ShieldIcon, TrashIcon, UserPlusIcon, UsersIcon } from "@/components/layout/icons";
 import { PanelOpciones } from "@/components/layout/PanelOpciones";
+import { Select } from "@/components/ui/Select";
 import { ROL_DESCRIPCION, ROL_LABEL, ROLES, type Rol } from "@/lib/auth/roles";
 import { BOTON, BOTON_SECUNDARIO, CAMPO } from "@/lib/formato";
 import type { Invitacion, Miembro } from "@/lib/tipos";
@@ -17,6 +18,7 @@ const OPCIONES = [
 ] as const;
 
 type VistaId = (typeof OPCIONES)[number]["id"];
+const OPCIONES_ROL = ROLES.map((r) => ({ value: r, label: ROL_LABEL[r] }));
 const TD = "px-4 py-3";
 
 function FormInvitar({ onListo }: { onListo: () => void }) {
@@ -36,13 +38,7 @@ function FormInvitar({ onListo }: { onListo: () => void }) {
           <input type="email" required className={CAMPO} value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
         </Campo>
         <Campo label="Rol">
-          <select className={CAMPO} value={rol} onChange={(e) => setRol(e.target.value as Rol)}>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {ROL_LABEL[r]}
-              </option>
-            ))}
-          </select>
+          <Select value={rol} onChange={setRol} opciones={OPCIONES_ROL} ariaLabel="Rol" />
         </Campo>
       </div>
       <p className="mt-3 text-sm text-slate-600">{ROL_DESCRIPCION[rol]}</p>
@@ -119,19 +115,7 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
                             {soyYo ? (
                               <span className="text-slate-800">{ROL_LABEL[m.rol]}</span>
                             ) : (
-                              <select
-                                aria-label={`Rol de ${m.email}`}
-                                className={`${CAMPO} w-44`}
-                                value={m.rol}
-                                disabled={pendiente}
-                                onChange={(e) => correr(() => cambiarRolUsuario(m.id, e.target.value))}
-                              >
-                                {ROLES.map((r) => (
-                                  <option key={r} value={r}>
-                                    {ROL_LABEL[r]}
-                                  </option>
-                                ))}
-                              </select>
+                              <Select value={m.rol} onChange={(nuevo) => correr(() => cambiarRolUsuario(m.id, nuevo))} opciones={OPCIONES_ROL} ariaLabel={`Rol de ${m.email}`} disabled={pendiente} className="!w-44" />
                             )}
                           </td>
                           <td className={TD}>

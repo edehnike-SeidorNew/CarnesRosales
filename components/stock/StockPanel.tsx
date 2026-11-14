@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { eliminarStockMovimiento, fijarPrecio, registrarAjuste, registrarCompra } from "@/app/acciones";
+import Link from "next/link";
+import { crearCorte, eliminarStockMovimiento, fijarPrecio, registrarAjuste, registrarCompra } from "@/app/acciones";
 import { Autor, Campo, Vacio } from "@/components/clientes/comunes";
 import { useAccion } from "@/components/comun/useAccion";
 import { CardLateral } from "@/components/layout/CardLateral";
-import { BoxIcon, HistoryIcon, PlusIcon, ReceiptIcon, SlidersIcon, TagIcon, TrashIcon } from "@/components/layout/icons";
+import { BoxIcon, ChevronLeftIcon, HistoryIcon, PlusIcon, ReceiptIcon, SlidersIcon, TagIcon, TrashIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
+import { Autocompletar } from "@/components/ui/Autocompletar";
+import { DateField } from "@/components/ui/DateField";
+import { Select } from "@/components/ui/Select";
 import { BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
 import type { Proveedor, StockDeProducto, StockMovimiento } from "@/lib/tipos";
 
@@ -16,7 +20,7 @@ const OPCIONES: (OpcionPanel<VistaId> & { titulo: string; requiereCargar: boolea
   { id: "actual", label: "Stock actual", titulo: "Stock", Icon: BoxIcon, requiereCargar: false },
   { id: "compra", label: "Registrar compra", titulo: "Registrar compra", Icon: ReceiptIcon, requiereCargar: true },
   { id: "ajuste", label: "Ajustar por conteo", titulo: "Ajustar stock por conteo", Icon: SlidersIcon, requiereCargar: true },
-  { id: "precios", label: "Lista de precios", titulo: "Lista de precios", Icon: TagIcon, requiereCargar: false },
+  { id: "precios", label: "Cortes y precios", titulo: "Cortes y lista de precios", Icon: TagIcon, requiereCargar: false },
   { id: "movimientos", label: "Compras y ajustes", titulo: "Compras y ajustes", Icon: HistoryIcon, requiereCargar: false },
 ];
 
@@ -40,10 +44,14 @@ function StockActual({ stock }: { stock: StockDeProducto[] }) {
               <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{p.nombre}</p>
             </div>
             <p className={`mt-3 text-xl font-bold tabular-nums ${negativo ? "text-red-700" : "text-slate-900"}`}>{kilos(p.stock)} kg</p>
-            <p className="mt-0.5 text-xs tabular-nums text-slate-500">
-              Comprado {kilos(p.comprado)} · vendido {kilos(p.vendido)}
-              {p.ajustes !== 0 && ` · ajustes ${p.ajustes > 0 ? "+" : ""}${kilos(p.ajustes)}`}
-            </p>
+            {p.desde === null ? (
+              <p className="mt-0.5 text-xs text-slate-500">Sin stock cargado todavía</p>
+            ) : (
+              <p className="mt-0.5 text-xs tabular-nums text-slate-500">
+                Desde el {fechaAR(p.desde)}: comprado {kilos(p.comprado)} · vendido {kilos(p.vendido)}
+                {p.ajustes !== 0 && ` · ajustes ${p.ajustes > 0 ? "+" : ""}${kilos(p.ajustes)}`}
+              </p>
+            )}
             {negativo && <p className="mt-1 text-xs font-medium text-red-700">Se vendió más de lo cargado: falta registrar compras o ajustar por conteo.</p>}
           </div>
         );
@@ -82,32 +90,22 @@ function FormCompra({ stock, proveedores, onListo }: { stock: StockDeProducto[];
     <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <Campo label="Fecha">
-          <input type="date" className={CAMPO} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <DateField value={fecha} onChange={setFecha} />
         </Campo>
         <Campo label="Proveedor">
-          <input className={CAMPO} list="proveedores" value={proveedor} onChange={(e) => setProveedor(e.target.value)} placeholder="Elegí uno o escribí uno nuevo" />
+          <Autocompletar value={proveedor} onChange={setProveedor} sugerencias={proveedores.map((p) => p.nombre)} placeholder="Elegí uno o escribí uno nuevo" ariaLabel="Proveedor" />
         </Campo>
         <Campo label="N° de factura / remito">
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} />
         </Campo>
       </div>
-      <datalist id="proveedores">
-        {proveedores.map((p) => (
-          <option key={p.id} value={p.nombre} />
-        ))}
-      </datalist>
-      <datalist id="cortes">
-        {stock.map((p) => (
-          <option key={p.nombre} value={p.nombre} />
-        ))}
-      </datalist>
 
       <h2 className="mb-2 mt-6 text-sm font-semibold text-brand">Mercadería que entra</h2>
       <div className="space-y-3">
         {renglones.map((r, i) => (
           <div key={i} className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_7rem_9rem_9rem_2.5rem]">
             <Campo label="Producto" className="col-span-2 sm:col-span-1">
-              <input className={CAMPO} list="cortes" value={r.producto} onChange={(e) => cambiar(i, "producto", e.target.value)} placeholder="Elegí uno o escribí uno nuevo" />
+              <Autocompletar value={r.producto} onChange={(valor) => cambiar(i, "producto", valor)} sugerencias={stock.map((p) => p.nombre)} placeholder="Elegí uno o escribí uno nuevo" ariaLabel="Producto" />
             </Campo>
             <Campo label="Kilos">
               <input type="number" min="0" step="0.001" className={CAMPO} value={r.kilos} onChange={(e) => cambiar(i, "kilos", e.target.value)} />
@@ -189,16 +187,10 @@ function FormAjuste({ stock, onListo }: { stock: StockDeProducto[]; onListo: () 
     <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <Campo label="Fecha">
-          <input type="date" className={CAMPO} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <DateField value={fecha} onChange={setFecha} />
         </Campo>
         <Campo label="Producto">
-          <select className={CAMPO} value={producto} onChange={(e) => setProducto(e.target.value)}>
-            {stock.map((p) => (
-              <option key={p.nombre} value={p.nombre}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+          <Select value={producto} onChange={setProducto} opciones={stock.map((p) => ({ value: p.nombre, label: p.nombre }))} ariaLabel="Producto" />
         </Campo>
         <Campo label="Kilos contados (lo que hay de verdad)">
           <input type="number" min="0" step="0.001" className={CAMPO} value={contado} onChange={(e) => setContado(e.target.value)} autoFocus />
@@ -281,9 +273,45 @@ function FilaPrecio({ producto, puedeCargar }: { producto: StockDeProducto; pued
   );
 }
 
-function ListaPrecios({ stock, puedeCargar }: { stock: StockDeProducto[]; puedeCargar: boolean }) {
-  if (stock.length === 0) return <Vacio icono={<TagIcon className="h-6 w-6" />}>Todavía no hay cortes cargados.</Vacio>;
+function NuevoCorte() {
+  const [nombre, setNombre] = useState("");
+  const { pendiente, error, setError, correr } = useAccion();
+
+  function enviar(e: FormEvent) {
+    e.preventDefault();
+    if (!nombre.trim()) return setError("Escribí el nombre del corte.");
+    correr(() => crearCorte(nombre), () => setNombre(""));
+  }
+
   return (
+    <form onSubmit={enviar} className="mb-4 rounded-lg border border-brand-border bg-white p-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <Campo label="Agregar un corte al catálogo" className="min-w-56 flex-1">
+          <input className={CAMPO} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej.: Asado, Nalga, Cuadril" />
+        </Campo>
+        <button type="submit" disabled={pendiente} className={`${BOTON} disabled:opacity-60`}>
+          <PlusIcon className="h-4 w-4" />
+          {pendiente ? "Agregando..." : "Agregar corte"}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+      <p className="mt-2 text-xs text-slate-500">Cada corte del catálogo tiene su card en el Inicio y en Stock, aunque todavía no se haya vendido.</p>
+    </form>
+  );
+}
+
+function ListaPrecios({ stock, puedeCargar }: { stock: StockDeProducto[]; puedeCargar: boolean }) {
+  if (stock.length === 0) {
+    return (
+      <>
+        {puedeCargar && <NuevoCorte />}
+        <Vacio icono={<TagIcon className="h-6 w-6" />}>Todavía no hay cortes cargados.</Vacio>
+      </>
+    );
+  }
+  return (
+    <>
+    {puedeCargar && <NuevoCorte />}
     <section className="overflow-hidden rounded-lg border border-brand-border bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -303,6 +331,7 @@ function ListaPrecios({ stock, puedeCargar }: { stock: StockDeProducto[]; puedeC
         </table>
       </div>
     </section>
+    </>
   );
 }
 
@@ -386,12 +415,15 @@ export function StockPanel({
   proveedores,
   puedeCargar,
   puedeBorrar,
+  desdeInicio,
 }: {
   stock: StockDeProducto[];
   movimientos: StockMovimiento[];
   proveedores: Proveedor[];
   puedeCargar: boolean;
   puedeBorrar: boolean;
+  /** Se llegó desde el Inicio ("Ver stock"): la pantalla principal ofrece volver ahí. */
+  desdeInicio: boolean;
 }) {
   const [vista, setVista] = useState<VistaId>("actual");
   const opciones = OPCIONES.filter((o) => puedeCargar || !o.requiereCargar);
@@ -402,7 +434,15 @@ export function StockPanel({
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-      <PanelOpciones titulo="Stock" opciones={opciones} seleccion={vista} onSelect={setVista} fija={false} desplazamiento="xl:mt-14">
+      {/* Con el "volver" arriba del título, el panel baja lo mismo para seguir alineado con el contenido. */}
+      <PanelOpciones
+        titulo="Stock"
+        opciones={opciones}
+        seleccion={vista}
+        onSelect={setVista}
+        fija={false}
+        desplazamiento={vista === "actual" && !desdeInicio ? "xl:mt-14" : "xl:mt-[5.5rem]"}
+      >
         <CardLateral titulo="Cómo funciona">
           <ul className="space-y-2 text-sm text-slate-600">
             <li>
@@ -419,6 +459,18 @@ export function StockPanel({
       </PanelOpciones>
 
       <div className="min-w-0 flex-1">
+        {vista === "actual" && desdeInicio && (
+          <Link href="/" className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-brand">
+            <ChevronLeftIcon className="h-4 w-4" />
+            Volver al inicio
+          </Link>
+        )}
+        {vista !== "actual" && (
+          <button type="button" onClick={volver} className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-brand">
+            <ChevronLeftIcon className="h-4 w-4" />
+            Volver al stock
+          </button>
+        )}
         <h1 className="mb-6 text-2xl font-bold text-brand">{actual.titulo}</h1>
 
         {vista === "actual" && (

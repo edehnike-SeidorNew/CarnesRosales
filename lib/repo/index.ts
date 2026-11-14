@@ -28,6 +28,8 @@ export interface Repo {
   registrarAjuste(ajuste: NuevoAjuste): Promise<void>;
   eliminarStockMovimiento(id: string): Promise<void>;
   fijarPrecio(producto: string, precio: number | null): Promise<void>;
+  /** Agrega un corte al catálogo (si ya existe, no hace nada). */
+  crearCorte(nombre: string): Promise<void>;
 
   registrarPagoProveedor(pago: NuevoPagoProveedor): Promise<void>;
   eliminarPagoProveedor(id: string): Promise<void>;

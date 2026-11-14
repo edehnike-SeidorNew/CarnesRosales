@@ -8,7 +8,7 @@ begin;
 -- Tipos
 -- ---------------------------------------------------------------------------
 create type public.tipo_movimiento as enum ('saldo_inicial', 'venta', 'pago');
-create type public.medio_pago as enum ('efectivo', 'mercado_pago', 'transferencia');
+create type public.medio_pago as enum ('efectivo', 'cheque', 'billetera_virtual');
 
 -- ---------------------------------------------------------------------------
 -- Clientes (hoja de clientes de la planilla)

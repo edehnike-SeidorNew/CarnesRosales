@@ -53,7 +53,7 @@ export function PagosPanel({ clientes, movimientos }: { clientes: Cliente[]; mov
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-      <PanelOpciones titulo="Medio de pago" opciones={OPCIONES} seleccion={medio} onSelect={setMedio} fija={false} desplazamiento="xl:mt-[5.5rem]" />
+      <PanelOpciones titulo="Medio de pago" opciones={OPCIONES} seleccion={medio} onSelect={setMedio} fija={false} desplazamiento="xl:mt-20" />
 
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-2">

@@ -101,6 +101,8 @@ revoke all on function public.al_crear_usuario() from public, anon, authenticate
 -- ===========================================================================
 -- STOCK
 -- El stock nunca se guarda: es compras + ajustes - kilos vendidos, por producto.
+-- Arranca en cero: un producto empieza a llevar stock el día de su primera carga (compra o
+-- ajuste) y sólo descuentan las ventas de ese día en adelante.
 -- ===========================================================================
 create type public.tipo_stock as enum ('compra', 'ajuste');
 
@@ -188,7 +190,15 @@ left join (
   from public.stock_movimientos group by producto_id
 ) e on e.producto_id = p.id
 left join (
-  select producto_id, sum(kilos) as vendido from public.movimiento_items group by producto_id
+  -- Sólo las ventas desde la primera carga de stock de ese producto.
+  select i.producto_id, sum(i.kilos) as vendido
+  from public.movimiento_items i
+  join public.movimientos m on m.id = i.movimiento_id
+  join (
+    select producto_id, min(fecha) as desde from public.stock_movimientos group by producto_id
+  ) c on c.producto_id = i.producto_id
+  where m.fecha >= c.desde
+  group by i.producto_id
 ) v on v.producto_id = p.id;
 
 -- Busca un producto por nombre (sin distinguir mayúsculas) o lo crea.

@@ -7,6 +7,8 @@ import { useAccion } from "@/components/comun/useAccion";
 import { CardLateral } from "@/components/layout/CardLateral";
 import { CashIcon, HistoryIcon, TrashIcon, TruckIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
+import { DateField } from "@/components/ui/DateField";
+import { Select } from "@/components/ui/Select";
 import { BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
 import {
   etiquetaMedio,
@@ -42,7 +44,7 @@ function FormPagoProveedor({
   const [fecha, setFecha] = useState(hoyISO);
   const [comprobante, setComprobante] = useState("");
   const [importe, setImporte] = useState("");
-  const [medioPago, setMedioPago] = useState<MedioPago>("transferencia");
+  const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
   const { pendiente, error, setError, correr } = useAccion();
 
   const monto = Number(importe.replace(",", ".")) || 0;
@@ -59,16 +61,10 @@ function FormPagoProveedor({
     <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo label="Proveedor">
-          <select className={CAMPO} value={proveedorId} onChange={(e) => setProveedorId(e.target.value)}>
-            {saldos.map(({ proveedor }) => (
-              <option key={proveedor.id} value={proveedor.id}>
-                {proveedor.nombre}
-              </option>
-            ))}
-          </select>
+          <Select value={proveedorId} onChange={setProveedorId} opciones={saldos.map(({ proveedor }) => ({ value: proveedor.id, label: proveedor.nombre }))} ariaLabel="Proveedor" />
         </Campo>
         <Campo label="Fecha">
-          <input type="date" className={CAMPO} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <DateField value={fecha} onChange={setFecha} />
         </Campo>
         <Campo label="N° de comprobante">
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} />
@@ -225,14 +221,7 @@ export function ProveedoresPanel({
           <>
             <div className="mb-4 max-w-xs">
               <Campo label="Proveedor">
-                <select className={CAMPO} value={elegido} onChange={(e) => setElegido(e.target.value)}>
-                  <option value="">Todos</option>
-                  {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                </select>
+                <Select value={elegido} onChange={setElegido} opciones={[{ value: "", label: "Todos" }, ...proveedores.map((p) => ({ value: p.id, label: p.nombre }))]} ariaLabel="Proveedor" />
               </Campo>
             </div>
             {error && <p className="mb-3 text-sm text-red-700">{error}</p>}

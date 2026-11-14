@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import { actualizarPago, actualizarVenta, registrarPago, registrarVenta } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
+import { Autocompletar } from "@/components/ui/Autocompletar";
+import { DateField } from "@/components/ui/DateField";
 import { BOTON, BOTON_SECUNDARIO, CAMPO, hoyISO, kilos as formatoKilos, pesos } from "@/lib/formato";
 import { MEDIOS_PAGO, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 import { Campo, SelectorMedio } from "./comunes";
@@ -65,7 +67,7 @@ export function FormVenta({
     <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo label="Fecha">
-          <input type="date" className={CAMPO} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <DateField value={fecha} onChange={setFecha} />
         </Campo>
         <Campo label="N° de remito / factura">
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} inputMode="numeric" />
@@ -73,27 +75,23 @@ export function FormVenta({
       </div>
 
       <h2 className="mb-2 mt-6 text-sm font-semibold text-brand">Productos</h2>
-      <datalist id="productos">
-        {stock.map((p) => (
-          <option key={p.nombre} value={p.nombre} />
-        ))}
-      </datalist>
 
       <div className="space-y-3">
         {renglones.map((r, i) => {
           const p = r.detalle.trim() ? producto(r.detalle) : undefined;
-          const disponible = p ? p.stock + yaVendido(r.detalle) : null;
+          // Sólo se informa el stock de los cortes que ya lo llevan (los que tuvieron alguna carga).
+          const disponible = p && p.desde !== null ? p.stock + yaVendido(r.detalle) : null;
           const falta = disponible !== null && (numero(r.kilos) || 0) > disponible;
           return (
             <div key={i}>
               <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_7rem_9rem_9rem_2.5rem]">
                 <Campo label="Producto" className="col-span-2 sm:col-span-1">
-                  <input
-                    className={CAMPO}
-                    list="productos"
+                  <Autocompletar
                     value={r.detalle}
-                    onChange={(e) => cambiar(i, "detalle", e.target.value)}
+                    onChange={(valor) => cambiar(i, "detalle", valor)}
+                    sugerencias={stock.map((p) => p.nombre)}
                     placeholder="Elegí uno o escribí uno nuevo"
+                    ariaLabel="Producto"
                   />
                 </Campo>
                 <Campo label="Kilos">
@@ -179,7 +177,7 @@ export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: n
     <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <Campo label="Fecha">
-          <input type="date" className={CAMPO} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <DateField value={fecha} onChange={setFecha} />
         </Campo>
         <Campo label="N° de recibo">
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} inputMode="numeric" />

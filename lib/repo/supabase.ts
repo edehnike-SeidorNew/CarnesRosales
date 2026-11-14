@@ -296,6 +296,12 @@ export const repoSupabase: Repo = {
     if (!data?.length) throw new Error("No se pudo guardar el precio (sin permiso)");
   },
 
+  async crearCorte(nombre) {
+    const db = await createClient();
+    const { error } = await db.rpc("producto_por_nombre", { p_nombre: nombre });
+    comprobar(error);
+  },
+
   async registrarPagoProveedor(pago) {
     const db = await createClient();
     const { error } = await db.from("pagos_proveedores").insert({
