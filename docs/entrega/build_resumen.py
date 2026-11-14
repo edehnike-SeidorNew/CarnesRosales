@@ -259,7 +259,7 @@ story.append(Paragraph(
 story.append(CondPageBreak(95 * mm))
 story += heading("Próximas etapas")
 story.append(Paragraph(
-    "Lo que sigue queda fuera de la primera etapa. Stock y Proveedores ya tienen un adelanto armado, que figura en el menú como «Próxima etapa».", body))
+    "Lo que sigue queda fuera de la primera etapa. Todas figuran en el menú, separadas en «Segunda etapa» y «Tercera etapa». Stock y Proveedores ya tienen un adelanto armado; las de la tercera etapa muestran qué van a hacer.", body))
 story.append(Spacer(1, 8))
 
 story.append(modulo(
