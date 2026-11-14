@@ -4,15 +4,20 @@ import { useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/LogoutButton";
-import { ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, UsersIcon } from "./icons";
+import { puede, ROL_LABEL, type Rol } from "@/lib/auth/roles";
+import { BoxIcon, CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, ShieldIcon, TruckIcon, UsersIcon } from "./icons";
 
 // Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
 type IconType = (props: { className?: string }) => ReactNode;
-type NavItem = { href: string; label: string; Icon: IconType };
+type NavItem = { href: string; label: string; Icon: IconType; soloAdmin?: boolean };
 
 const SECTIONS: NavItem[] = [
   { href: "/", label: "Inicio", Icon: HomeIcon },
   { href: "/clientes", label: "Clientes", Icon: UsersIcon },
+  { href: "/pagos", label: "Pagos", Icon: CashIcon },
+  { href: "/stock", label: "Stock", Icon: BoxIcon },
+  { href: "/proveedores", label: "Proveedores", Icon: TruckIcon },
+  { href: "/usuarios", label: "Usuarios", Icon: ShieldIcon, soloAdmin: true },
 ];
 
 const CLAVE_MENU = "carnes_rosales_menu_colapsado";
@@ -70,13 +75,15 @@ function Marca({ compacta = false }: { compacta?: boolean }) {
   );
 }
 
-export function AppShell({ email, mock, children }: { email: string; mock: boolean; children: ReactNode }) {
+export function AppShell({ email, rol, mock, children }: { email: string; rol: Rol; mock: boolean; children: ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   // Menú de escritorio plegado (sólo íconos). En celular se usa siempre el desplegable.
   const colapsado = useSyncExternalStore(suscribirMenu, leerMenuColapsado, () => false);
   const [tip, setTip] = useState<{ label: string; top: number; left: number } | null>(null);
   const inicial = (email.trim().charAt(0) || "U").toUpperCase();
+  // La pantalla de usuarios es solo para administradores (igual se verifica en el servidor).
+  const secciones = SECTIONS.filter((s) => !s.soloAdmin || puede(rol, "usuarios"));
 
   function mostrarTip(e: { currentTarget: HTMLElement }, label: string, siempre = false) {
     if (!colapsado && !siempre) return;
@@ -157,7 +164,7 @@ export function AppShell({ email, mock, children }: { email: string; mock: boole
             aria-label="Secciones"
             className="flex-1 space-y-1 overflow-y-auto [scrollbar-color:rgba(255,255,255,0.3)_transparent] [scrollbar-width:thin]"
           >
-            {SECTIONS.map(navLink)}
+            {secciones.map(navLink)}
           </nav>
 
           <div
@@ -167,12 +174,15 @@ export function AppShell({ email, mock, children }: { email: string; mock: boole
           >
             <span
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-accent text-sm font-bold text-brand-deep"
-              title={colapsado ? email : undefined}
+              title={colapsado ? `${email} · ${ROL_LABEL[rol]}` : undefined}
             >
               {inicial}
             </span>
             <div className={`min-w-0 flex-1 ${colapsado ? "md:hidden" : ""}`}>
-              <p className="truncate text-[13px] font-semibold leading-tight">{mock ? "Modo demo" : "Sesión iniciada"}</p>
+              <p className="truncate text-[13px] font-semibold leading-tight">
+                {ROL_LABEL[rol]}
+                {mock && " · demo"}
+              </p>
               <p className="truncate text-xs text-white/75" title={email}>
                 {email}
               </p>

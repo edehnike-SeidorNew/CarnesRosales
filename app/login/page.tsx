@@ -3,7 +3,13 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { getServerSession } from "@/lib/auth/session";
 import { isMockMode } from "@/lib/supabase/env";
 
-export default async function LoginPage() {
+const ERRORES: Record<string, string> = {
+  auth: "No se pudo completar el inicio de sesión. Probá de nuevo.",
+  recuperar: "El enlace para cambiar la contraseña venció o ya se usó. Pedí uno nuevo con \"¿Olvidaste tu contraseña?\".",
+};
+
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const session = await getServerSession();
   if (session) {
     redirect("/");
@@ -51,7 +57,7 @@ export default async function LoginPage() {
             )}
 
             <div className="mt-6">
-              <LoginForm mock={mock} />
+              <LoginForm mock={mock} initialError={(error && ERRORES[error]) || null} />
             </div>
           </section>
         </div>

@@ -1,57 +1,63 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { eliminarMovimiento } from "@/app/acciones";
+import { useAccion } from "@/components/comun/useAccion";
 import { CardLateral } from "@/components/layout/CardLateral";
-import { CashIcon, ChevronLeftIcon, HistoryIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
-import { PanelOpciones } from "@/components/layout/PanelOpciones";
-import { fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
-import { efectoEnSaldo, etiquetaMedio, redondear, subtotalItem, type Cliente, type Movimiento } from "@/lib/tipos";
-import { FiltroPeriodo, Iniciales, Lista, Tarjeta } from "./comunes";
+import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
+import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
+import { BOTON_SECUNDARIO, fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
+import { efectoEnSaldo, etiquetaMedio, redondear, subtotalItem, type Cliente, type Movimiento, type StockDeProducto } from "@/lib/tipos";
+import { Autor, FiltroPeriodo, Iniciales, Lista, Tarjeta, Vacio } from "./comunes";
+import { FormCliente } from "./FormCliente";
 import { FormPago, FormVenta } from "./Formularios";
 
-const OPCIONES = [
-  { id: "historial", label: "Historial", titulo: "Historial de movimientos", Icon: HistoryIcon },
-  { id: "venta", label: "Registrar venta", titulo: "Registrar venta", Icon: ReceiptIcon },
-  { id: "pago", label: "Registrar pago", titulo: "Registrar pago", Icon: CashIcon },
-] as const;
+type VistaId = "historial" | "venta" | "pago" | "editar";
 
-type VistaId = (typeof OPCIONES)[number]["id"];
+const OPCIONES: (OpcionPanel<VistaId> & { titulo: string; requiereCargar: boolean })[] = [
+  { id: "historial", label: "Historial", titulo: "Historial de movimientos", Icon: HistoryIcon, requiereCargar: false },
+  { id: "venta", label: "Registrar venta", titulo: "Registrar venta", Icon: ReceiptIcon, requiereCargar: true },
+  { id: "pago", label: "Registrar pago", titulo: "Registrar pago", Icon: CashIcon, requiereCargar: true },
+  { id: "editar", label: "Editar cliente", titulo: "Editar cliente", Icon: PencilIcon, requiereCargar: true },
+];
 
 const TD = "px-3 py-2.5";
 const NUM = `${TD} text-right tabular-nums`;
 
-function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number }[]; filtrado: boolean }) {
-  const [borrando, iniciar] = useTransition();
-  const [error, setError] = useState("");
+function Historial({
+  filas,
+  filtrado,
+  puedeCargar,
+  puedeBorrar,
+  onEditar,
+}: {
+  filas: { m: Movimiento; saldo: number }[];
+  filtrado: boolean;
+  puedeCargar: boolean;
+  puedeBorrar: boolean;
+  onEditar: (m: Movimiento) => void;
+}) {
+  const { pendiente, error, correr } = useAccion();
 
   function borrar(m: Movimiento) {
-    if (!window.confirm("¿Eliminar este movimiento? El saldo se recalcula.")) return;
-    setError("");
-    iniciar(async () => {
-      const r = await eliminarMovimiento(m.id);
-      if (!r.ok) setError(r.error);
-    });
+    if (window.confirm("¿Eliminar este movimiento? El saldo se recalcula.")) correr(() => eliminarMovimiento(m.id));
   }
 
   if (filas.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-lg border border-brand-border bg-white p-10 text-sm text-slate-500">
-        <HistoryIcon className="h-6 w-6" />
-        {filtrado
-          ? "No hay movimientos en este período."
-          : "Este cliente todavía no tiene movimientos. Registrá una venta o un pago desde el menú de la derecha."}
-      </div>
+      <Vacio icono={<HistoryIcon className="h-6 w-6" />}>
+        {filtrado ? "No hay movimientos en este período." : "Este cliente todavía no tiene movimientos."}
+      </Vacio>
     );
   }
 
   return (
     <>
       {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
-      <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${borrando ? "opacity-60" : ""}`}>
+      <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${pendiente ? "opacity-60" : ""}`}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1020px] text-left text-sm">
+          <table className="w-full min-w-[1100px] text-left text-sm">
             <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
               <tr>
                 <th className={`${TD} font-semibold`}>Fecha</th>
@@ -64,7 +70,8 @@ function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number 
                 <th className={`${TD} text-right font-semibold`}>Total compra</th>
                 <th className={`${TD} text-right font-semibold`}>Pago entrante</th>
                 <th className={`${TD} text-right font-semibold`}>Saldo adeudado</th>
-                <th className="w-10" />
+                <th className={`${TD} font-semibold`}>Cargó</th>
+                <th className="w-16" />
               </tr>
             </thead>
             {filas.map(({ m, saldo }) => {
@@ -87,9 +94,7 @@ function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number 
                     <tr key={i} className={m.tipo === "pago" ? "bg-emerald-50/50" : ""}>
                       <td className={`${TD} whitespace-nowrap text-slate-800`}>{i === 0 ? fechaAR(m.fecha) : ""}</td>
                       <td className={`${TD} text-slate-500`}>{i === 0 ? m.comprobante : ""}</td>
-                      <td className={`${TD} font-medium ${m.tipo === "pago" ? "text-emerald-800" : "text-slate-900"}`}>
-                        {r.detalle}
-                      </td>
+                      <td className={`${TD} font-medium ${m.tipo === "pago" ? "text-emerald-800" : "text-slate-900"}`}>{r.detalle}</td>
                       <td className={`${TD} whitespace-nowrap ${m.tipo === "pago" && m.medioPago ? "text-slate-800" : "text-slate-400"}`}>
                         {m.tipo === "pago" ? etiquetaMedio(m.medioPago) : ""}
                       </td>
@@ -99,13 +104,26 @@ function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number 
                       <td className={`${NUM} text-slate-900`}>{i === ultimo && importe > 0 ? pesos(importe) : ""}</td>
                       <td className={`${NUM} font-semibold text-emerald-700`}>{i === ultimo && importe < 0 ? pesos(-importe) : ""}</td>
                       <td className={`${NUM} font-semibold text-slate-900`}>{i === ultimo ? pesos(saldo) : ""}</td>
-                      <td className="pr-2 text-right">
-                        {i === 0 && (
+                      <td className={`${TD} text-xs text-slate-500`}>{i === 0 && <Autor email={m.creadoPor} />}</td>
+                      <td className="whitespace-nowrap pr-2 text-right">
+                        {i === 0 && puedeCargar && m.tipo !== "saldo_inicial" && (
+                          <button
+                            type="button"
+                            onClick={() => onEditar(m)}
+                            aria-label="Corregir movimiento"
+                            title="Corregir"
+                            className="rounded-md p-1.5 text-slate-400 hover:bg-brand-soft hover:text-brand"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                        )}
+                        {i === 0 && puedeBorrar && (
                           <button
                             type="button"
                             onClick={() => borrar(m)}
-                            disabled={borrando}
+                            disabled={pendiente}
                             aria-label="Eliminar movimiento"
+                            title="Eliminar"
                             className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-700"
                           >
                             <TrashIcon className="h-4 w-4" />
@@ -124,18 +142,23 @@ function Historial({ filas, filtrado }: { filas: { m: Movimiento; saldo: number 
   );
 }
 
-/** Cuenta corriente de un cliente: saldo en cards, historial y carga de ventas y pagos. */
+/** Cuenta corriente de un cliente: saldo en cards, historial y carga o corrección de ventas y pagos. */
 export function DetalleCliente({
   cliente,
   movimientos,
-  productos,
+  stock,
+  puedeCargar,
+  puedeBorrar,
 }: {
   cliente: Cliente;
   /** Sólo los movimientos de este cliente. */
   movimientos: Movimiento[];
-  productos: string[];
+  stock: StockDeProducto[];
+  puedeCargar: boolean;
+  puedeBorrar: boolean;
 }) {
   const [vista, setVista] = useState<VistaId>("historial");
+  const [editando, setEditando] = useState<Movimiento | null>(null);
   const [periodo, setPeriodo] = useState<Periodo>("todo");
 
   // Orden cronológico; a igual fecha, en el orden en que se cargaron.
@@ -163,19 +186,21 @@ export function DetalleCliente({
   const delPeriodo = (tipo: Movimiento["tipo"]) =>
     visibles.reduce((total, { m }) => (m.tipo === tipo ? total + Math.abs(efectoEnSaldo(m)) : total), 0);
 
-  const actual = OPCIONES.find((o) => o.id === vista) ?? OPCIONES[0];
-  const volver = () => setVista("historial");
+  const opciones = OPCIONES.filter((o) => puedeCargar || !o.requiereCargar);
+  const actual = opciones.find((o) => o.id === vista) ?? opciones[0];
+  const volver = () => {
+    setEditando(null);
+    setVista("historial");
+  };
+  const elegir = (id: VistaId) => {
+    setEditando(null);
+    setVista(id);
+  };
+  const titulo = editando ? (editando.tipo === "venta" ? "Corregir venta" : "Corregir pago") : actual.titulo;
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-      <PanelOpciones
-        titulo="Cuenta corriente"
-        opciones={OPCIONES}
-        seleccion={vista}
-        onSelect={setVista}
-        fija={false}
-        desplazamiento="xl:mt-[6.625rem]"
-      >
+      <PanelOpciones titulo="Cuenta corriente" opciones={opciones} seleccion={vista} onSelect={elegir} fija={false} desplazamiento="xl:mt-[6.625rem]">
         <CardLateral titulo="Datos del cliente">
           <Lista
             filas={[
@@ -227,20 +252,38 @@ export function DetalleCliente({
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <h2 className="text-lg font-bold text-brand">{actual.titulo}</h2>
-          {vista === "historial" && <FiltroPeriodo periodo={periodo} onChange={setPeriodo} />}
+          <h2 className="text-lg font-bold text-brand">{titulo}</h2>
+          {vista === "historial" && !editando && (
+            <>
+              <FiltroPeriodo periodo={periodo} onChange={setPeriodo} />
+              {/* El PDF respeta el período elegido. */}
+              <a
+                href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}`}
+                className={`${BOTON_SECUNDARIO} ml-auto !px-3 !py-1.5`}
+                title="Descargar el resumen de cuenta para enviarle al cliente"
+              >
+                <DownloadIcon className="h-4 w-4" />
+                Descargar PDF
+              </a>
+            </>
+          )}
         </div>
 
-        {vista === "historial" && desde && (
+        {vista === "historial" && !editando && desde && (
           <p className="mb-3 text-sm text-slate-600">
             Desde el {fechaAR(desde)}: compras <strong className="text-slate-900">{pesos(delPeriodo("venta"))}</strong> · pagos{" "}
             <strong className="text-emerald-700">{pesos(delPeriodo("pago"))}</strong>
           </p>
         )}
 
-        {vista === "historial" && <Historial filas={visibles} filtrado={desde !== null} />}
-        {vista === "venta" && <FormVenta clienteId={cliente.id} productos={productos} onListo={volver} />}
-        {vista === "pago" && <FormPago clienteId={cliente.id} saldo={saldo} onListo={volver} />}
+        {editando?.tipo === "venta" && <FormVenta key={editando.id} clienteId={cliente.id} stock={stock} venta={editando} onListo={volver} />}
+        {editando?.tipo === "pago" && <FormPago key={editando.id} clienteId={cliente.id} saldo={saldo} pago={editando} onListo={volver} />}
+        {!editando && vista === "historial" && (
+          <Historial filas={visibles} filtrado={desde !== null} puedeCargar={puedeCargar} puedeBorrar={puedeBorrar} onEditar={setEditando} />
+        )}
+        {!editando && vista === "venta" && <FormVenta clienteId={cliente.id} stock={stock} onListo={volver} />}
+        {!editando && vista === "pago" && <FormPago clienteId={cliente.id} saldo={saldo} onListo={volver} />}
+        {!editando && vista === "editar" && <FormCliente cliente={cliente} onListo={volver} onCancelar={volver} />}
       </div>
     </div>
   );

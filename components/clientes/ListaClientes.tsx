@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { crearCliente } from "@/app/acciones";
 import { CardLateral } from "@/components/layout/CardLateral";
 import { FunnelIcon, UserPlusIcon, UsersIcon } from "@/components/layout/icons";
 import { PanelOpciones } from "@/components/layout/PanelOpciones";
-import { BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, haceDiasISO, pesos } from "@/lib/formato";
-import { saldoDe, type Cliente, type Movimiento, type NuevoCliente } from "@/lib/tipos";
-import { Campo, Iniciales, Lista } from "./comunes";
+import { CAMPO, fechaAR, haceDiasISO, pesos } from "@/lib/formato";
+import { saldoDe, type Cliente, type Movimiento } from "@/lib/tipos";
+import { Iniciales, Lista } from "./comunes";
+import { FormCliente } from "./FormCliente";
 import { FILTROS_VACIOS, FiltrosClientes, filtrosActivos, SIN_LOCALIDAD, type Filtros } from "./FiltrosClientes";
 
 const OPCIONES = [
@@ -18,81 +18,16 @@ const OPCIONES = [
 
 type VistaId = (typeof OPCIONES)[number]["id"];
 
-const CLIENTE_VACIO: NuevoCliente = {
-  nombreFantasia: "",
-  titular: "",
-  direccion: "",
-  localidad: "",
-  cuit: "",
-  contacto: "",
-  observaciones: "",
-};
-
-function FormCliente({ onCancelar }: { onCancelar: () => void }) {
-  const router = useRouter();
-  const [datos, setDatos] = useState<NuevoCliente>(CLIENTE_VACIO);
-  const [error, setError] = useState("");
-  const [guardando, iniciar] = useTransition();
-
-  const cambiar = (campo: keyof NuevoCliente) => (e: { target: { value: string } }) =>
-    setDatos((d) => ({ ...d, [campo]: e.target.value }));
-
-  function enviar(e: FormEvent) {
-    e.preventDefault();
-    if (!datos.nombreFantasia.trim()) {
-      setError("Ingresá el nombre de fantasía.");
-      return;
-    }
-    setError("");
-    iniciar(async () => {
-      const r = await crearCliente(datos);
-      if (r.ok) router.push(`/clientes/${r.dato.id}`);
-      else setError(r.error);
-    });
-  }
-
-  return (
-    <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Campo label="Nombre de fantasía *">
-          <input className={CAMPO} value={datos.nombreFantasia} onChange={cambiar("nombreFantasia")} autoFocus />
-        </Campo>
-        <Campo label="Titular">
-          <input className={CAMPO} value={datos.titular} onChange={cambiar("titular")} />
-        </Campo>
-        <Campo label="Dirección">
-          <input className={CAMPO} value={datos.direccion} onChange={cambiar("direccion")} />
-        </Campo>
-        <Campo label="Localidad">
-          <input className={CAMPO} value={datos.localidad} onChange={cambiar("localidad")} />
-        </Campo>
-        <Campo label="C.U.I.T.">
-          <input className={CAMPO} value={datos.cuit} onChange={cambiar("cuit")} placeholder="00-00000000-0" />
-        </Campo>
-        <Campo label="Contacto">
-          <input className={CAMPO} value={datos.contacto} onChange={cambiar("contacto")} placeholder="Teléfono o email" />
-        </Campo>
-        <Campo label="Observaciones" className="sm:col-span-2">
-          <textarea className={CAMPO} rows={3} value={datos.observaciones} onChange={cambiar("observaciones")} />
-        </Campo>
-      </div>
-
-      {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
-
-      <div className="mt-5 flex flex-wrap gap-3">
-        <button type="submit" disabled={guardando} className={`${BOTON} disabled:opacity-60`}>
-          {guardando ? "Guardando..." : "Guardar cliente"}
-        </button>
-        <button type="button" onClick={onCancelar} className={BOTON_SECUNDARIO}>
-          Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
 /** Lista de clientes con buscador y saldo; al tocar un cliente se abre su cuenta corriente. */
-export function ListaClientes({ clientes, movimientos }: { clientes: Cliente[]; movimientos: Movimiento[] }) {
+export function ListaClientes({
+  clientes,
+  movimientos,
+  puedeCargar,
+}: {
+  clientes: Cliente[];
+  movimientos: Movimiento[];
+  puedeCargar: boolean;
+}) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaId>("lista");
   const [busqueda, setBusqueda] = useState("");
@@ -147,7 +82,7 @@ export function ListaClientes({ clientes, movimientos }: { clientes: Cliente[]; 
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-      <PanelOpciones titulo="Clientes" opciones={OPCIONES} seleccion={vista} onSelect={setVista} fija={false} desplazamiento="xl:mt-14">
+      <PanelOpciones titulo="Clientes" opciones={puedeCargar ? OPCIONES : OPCIONES.slice(0, 1)} seleccion={vista} onSelect={setVista} fija={false} desplazamiento="xl:mt-14">
         <CardLateral titulo="Resumen">
           <Lista
             filas={[
@@ -163,7 +98,7 @@ export function ListaClientes({ clientes, movimientos }: { clientes: Cliente[]; 
         <h1 className="mb-6 text-2xl font-bold text-brand">{vista === "nuevo" ? "Nuevo cliente" : "Clientes"}</h1>
 
         {vista === "nuevo" ? (
-          <FormCliente onCancelar={() => setVista("lista")} />
+          <FormCliente onListo={(id) => router.push(`/clientes/${id}`)} onCancelar={() => setVista("lista")} />
         ) : (
           <section className="overflow-hidden rounded-lg border border-brand-border bg-white">
             <div className="flex flex-wrap items-center gap-3 border-b border-brand-border p-4">

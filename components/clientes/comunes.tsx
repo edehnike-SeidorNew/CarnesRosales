@@ -79,3 +79,54 @@ export function FiltroPeriodo({
     </div>
   );
 }
+
+/** Usuario corto para la columna "Cargó": lo que va antes de la @. */
+export function Autor({ email }: { email: string }) {
+  if (!email) return <span className="text-slate-400">—</span>;
+  return <span title={email}>{email.split("@")[0]}</span>;
+}
+
+/** Botones para elegir el medio de pago. */
+export function SelectorMedio<Id extends string>({
+  opciones,
+  valor,
+  onChange,
+  nombre = "medioPago",
+}: {
+  opciones: readonly { id: Id; label: string }[];
+  valor: Id;
+  onChange: (id: Id) => void;
+  nombre?: string;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-medium text-slate-700">Medio de pago</legend>
+      <div className="flex flex-wrap gap-2">
+        {opciones.map(({ id, label }) => {
+          const activo = id === valor;
+          return (
+            <label
+              key={id}
+              className={`cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold ring-1 transition-colors ${
+                activo ? "bg-brand text-white ring-brand" : "bg-white text-slate-700 ring-brand-border hover:bg-brand-soft"
+              }`}
+            >
+              <input type="radio" name={nombre} value={id} checked={activo} onChange={() => onChange(id)} className="sr-only" />
+              {label}
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/** Mensaje de lista vacía, con un ícono arriba. */
+export function Vacio({ icono, children }: { icono: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-lg border border-brand-border bg-white p-10 text-center text-sm text-slate-500">
+      {icono}
+      {children}
+    </div>
+  );
+}

@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { FiltroPeriodo, Tarjeta } from "@/components/clientes/comunes";
 import { CardLateral, ColumnaLateral } from "@/components/layout/CardLateral";
-import { ScaleIcon } from "@/components/layout/icons";
+import { BoxIcon, ScaleIcon } from "@/components/layout/icons";
 import { fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
-import { MEDIOS_PAGO, redondear, saldoDe, subtotalItem, type Cliente, type MedioPago, type Movimiento } from "@/lib/tipos";
+import { MEDIOS_PAGO, redondear, saldoDe, subtotalItem, type Cliente, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 
 const NOMBRE_PERIODO: Record<Periodo, string> = {
   todo: "Todo el historial",
@@ -31,12 +31,12 @@ const EN_PERIODO: Record<Periodo, string> = {
 export function Inicio({
   clientes,
   movimientos,
-  productos,
+  stock,
 }: {
   clientes: Cliente[];
   movimientos: Movimiento[];
-  /** Catálogo de cortes: cada uno tiene su card aunque no se haya vendido en el período. */
-  productos: string[];
+  /** Stock actual de cada corte del catálogo: cada uno tiene su card aunque no se haya vendido en el período. */
+  stock: StockDeProducto[];
 }) {
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const desde = inicioDePeriodo(periodo);
@@ -57,9 +57,10 @@ export function Inicio({
     }
   }
   const vendidos = porCorte.size;
-  for (const nombre of productos) {
+  for (const { nombre } of stock) {
     if (!porCorte.has(nombre.toLowerCase())) porCorte.set(nombre.toLowerCase(), { nombre, kilos: 0, importe: 0 });
   }
+  const totalStock = stock.reduce((t, p) => t + p.stock, 0);
   const cortes = [...porCorte.values()].sort((a, b) => b.kilos - a.kilos || a.nombre.localeCompare(b.nombre, "es"));
   const kilosVendidos = cortes.reduce((t, c) => t + c.kilos, 0);
   const vendido = redondear(cortes.reduce((t, c) => t + c.importe, 0));
@@ -181,6 +182,40 @@ export function Inicio({
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        <div className="mb-3 mt-8 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <h2 className="text-lg font-bold text-brand">Stock disponible hoy</h2>
+          <span className="text-sm text-slate-500">
+            {kilos(totalStock)} kg en total ·{" "}
+            <Link href="/stock" className="font-semibold text-brand hover:underline">
+              Ver stock
+            </Link>
+          </span>
+        </div>
+        {stock.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-brand-border bg-white p-10 text-sm text-slate-500">
+            <BoxIcon className="h-6 w-6" />
+            Todavía no hay mercadería cargada.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {stock.map((p) => {
+              const negativo = p.stock < 0;
+              return (
+                <div key={p.nombre} className={`rounded-2xl border bg-white p-4 ${negativo ? "border-red-300" : "border-brand-border"}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${negativo ? "bg-red-50 text-red-700" : "bg-brand-soft text-brand"}`}>
+                      <BoxIcon className="h-4 w-4" />
+                    </span>
+                    <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{p.nombre}</p>
+                  </div>
+                  <p className={`mt-3 text-xl font-bold tabular-nums ${negativo ? "text-red-700" : "text-slate-900"}`}>{kilos(p.stock)} kg</p>
+                  <p className="mt-0.5 text-xs text-slate-500">{negativo ? "Falta cargar compras o ajustar por conteo" : p.stock === 0 ? "Sin stock" : "En stock"}</p>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

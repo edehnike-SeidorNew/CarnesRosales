@@ -20,7 +20,9 @@ export const CLIENTES: Cliente[] = [
   },
 ];
 
-export const MOVIMIENTOS: Movimiento[] = [
+type SinAutor<T> = T extends unknown ? Omit<T, "creadoPor"> : never;
+
+const BASE: SinAutor<Movimiento>[] = [
   { id: "m1", clienteId: "1", fecha: "2026-10-15", tipo: "saldo_inicial", comprobante: "", importe: 77050 },
   {
     id: "m2",
@@ -61,3 +63,6 @@ export const MOVIMIENTOS: Movimiento[] = [
     items: [{ detalle: "Picada", kilos: 15.8, precio: 13000 }],
   },
 ];
+
+// La planilla no dice quién cargó cada movimiento.
+export const MOVIMIENTOS: Movimiento[] = BASE.map((m) => ({ ...m, creadoPor: "" }) as Movimiento);

@@ -128,3 +128,58 @@ export const FunnelIcon = ({ className }: IconProps) => (
     <path d="M4 5h16l-6.2 7.4V18l-3.6 2v-7.6z" />
   </Svg>
 );
+
+export const PencilIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+    <path d="m13.5 6.5 4 4" />
+  </Svg>
+);
+
+export const DownloadIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M12 4v12M7 11l5 5 5-5" />
+    <path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1" />
+  </Svg>
+);
+
+/** Stock / mercadería. */
+export const BoxIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" />
+    <path d="m4 7.5 8 4.5 8-4.5M12 12v9" />
+  </Svg>
+);
+
+/** Proveedores. */
+export const TruckIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M3 6h11v10H3zM14 9h4l3 3v4h-7" />
+    <circle cx="7" cy="17.5" r="1.8" />
+    <circle cx="17.5" cy="17.5" r="1.8" />
+  </Svg>
+);
+
+export const ShieldIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M12 3 5 6v6c0 4.4 3 7.5 7 9 4-1.5 7-4.6 7-9V6z" />
+    <path d="m9 12 2 2 4-4" />
+  </Svg>
+);
+
+/** Lista de precios. */
+export const TagIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M4 4h7l9 9-7 7-9-9z" />
+    <path d="M8 8h.01" />
+  </Svg>
+);
+
+/** Ajuste de stock (conteo). */
+export const SlidersIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+    <circle cx="16" cy="7" r="2" />
+    <circle cx="10" cy="17" r="2" />
+  </Svg>
+);

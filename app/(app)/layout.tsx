@@ -1,16 +1,12 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getServerSession } from "@/lib/auth/session";
+import { exigirAcceso } from "@/lib/auth/session";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const session = await getServerSession();
-  if (!session) {
-    redirect("/login");
-  }
+  const session = await exigirAcceso();
 
   return (
-    <AppShell email={session.email} mock={session.mock}>
+    <AppShell email={session.email} rol={session.rol} mock={session.mock}>
       {children}
     </AppShell>
   );
