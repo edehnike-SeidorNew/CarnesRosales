@@ -9,9 +9,10 @@ import { CardLateral } from "@/components/layout/CardLateral";
 import { BoxIcon, ChevronLeftIcon, HistoryIcon, PlusIcon, ReceiptIcon, SlidersIcon, TagIcon, TrashIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
 import { Autocompletar } from "@/components/ui/Autocompletar";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { DateField } from "@/components/ui/DateField";
 import { Select } from "@/components/ui/Select";
-import { BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
+import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
 import type { Proveedor, StockDeProducto, StockMovimiento } from "@/lib/tipos";
 
 type VistaId = "actual" | "compra" | "ajuste" | "precios" | "movimientos";
@@ -24,7 +25,7 @@ const OPCIONES: (OpcionPanel<VistaId> & { titulo: string; requiereCargar: boolea
   { id: "movimientos", label: "Compras y ajustes", titulo: "Compras y ajustes", Icon: HistoryIcon, requiereCargar: false },
 ];
 
-const numero = (texto: string) => Number(texto.replace(",", "."));
+const numero = aNumero;
 const TD = "px-4 py-3";
 
 function StockActual({ stock }: { stock: StockDeProducto[] }) {
@@ -108,10 +109,10 @@ function FormCompra({ stock, proveedores, onListo }: { stock: StockDeProducto[];
               <Autocompletar value={r.producto} onChange={(valor) => cambiar(i, "producto", valor)} sugerencias={stock.map((p) => p.nombre)} placeholder="Elegí uno o escribí uno nuevo" ariaLabel="Producto" />
             </Campo>
             <Campo label="Kilos">
-              <input type="number" min="0" step="0.001" className={CAMPO} value={r.kilos} onChange={(e) => cambiar(i, "kilos", e.target.value)} />
+              <CampoNumero value={r.kilos} onChange={(valor) => cambiar(i, "kilos", valor)} decimales={3} />
             </Campo>
             <Campo label="Costo por kilo">
-              <input type="number" min="0" step="0.01" className={CAMPO} value={r.costo} onChange={(e) => cambiar(i, "costo", e.target.value)} placeholder="Opcional" />
+              <CampoNumero value={r.costo} onChange={(valor) => cambiar(i, "costo", valor)} placeholder="Opcional" />
             </Campo>
             <div className="text-sm">
               <span className="mb-1 block font-medium text-slate-700">Subtotal</span>
@@ -193,7 +194,7 @@ function FormAjuste({ stock, onListo }: { stock: StockDeProducto[]; onListo: () 
           <Select value={producto} onChange={setProducto} opciones={stock.map((p) => ({ value: p.nombre, label: p.nombre }))} ariaLabel="Producto" />
         </Campo>
         <Campo label="Kilos contados (lo que hay de verdad)">
-          <input type="number" min="0" step="0.001" className={CAMPO} value={contado} onChange={(e) => setContado(e.target.value)} autoFocus />
+          <CampoNumero value={contado} onChange={setContado} decimales={3} autoFocus />
         </Campo>
         <Campo label="Nota" className="sm:col-span-3">
           <input className={CAMPO} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej.: merma, stock inicial, error de carga" />
@@ -229,7 +230,7 @@ function FormAjuste({ stock, onListo }: { stock: StockDeProducto[]; onListo: () 
 }
 
 function FilaPrecio({ producto, puedeCargar }: { producto: StockDeProducto; puedeCargar: boolean }) {
-  const [valor, setValor] = useState(producto.precio === null ? "" : String(producto.precio));
+  const [valor, setValor] = useState(producto.precio === null ? "" : aCampo(producto.precio));
   const { pendiente, error, correr } = useAccion();
   const nuevo = valor.trim() ? numero(valor) : null;
   const cambio = nuevo !== producto.precio;
@@ -242,16 +243,7 @@ function FilaPrecio({ producto, puedeCargar }: { producto: StockDeProducto; pued
       <td className={TD}>
         {puedeCargar ? (
           <div className="flex items-center justify-end gap-2">
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              aria-label={`Precio por kilo de ${producto.nombre}`}
-              placeholder="Sin precio"
-              className={`${CAMPO} w-36 text-right`}
-            />
+            <CampoNumero value={valor} onChange={setValor} className="w-36 text-right" placeholder="Sin precio" ariaLabel={`Precio por kilo de ${producto.nombre}`} />
             <button
               type="button"
               disabled={!cambio || pendiente}

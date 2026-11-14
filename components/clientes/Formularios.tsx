@@ -5,15 +5,16 @@ import { actualizarPago, actualizarVenta, registrarPago, registrarVenta } from "
 import { useAccion } from "@/components/comun/useAccion";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { Autocompletar } from "@/components/ui/Autocompletar";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { DateField } from "@/components/ui/DateField";
-import { BOTON, BOTON_SECUNDARIO, CAMPO, hoyISO, kilos as formatoKilos, pesos } from "@/lib/formato";
+import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO, hoyISO, kilos as formatoKilos, pesos } from "@/lib/formato";
 import { MEDIOS_PAGO, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 import { Campo, SelectorMedio } from "./comunes";
 
 type Renglon = { detalle: string; kilos: string; precio: string };
 const RENGLON_VACIO: Renglon = { detalle: "", kilos: "", precio: "" };
 
-const numero = (texto: string) => Number(texto.replace(",", "."));
+const numero = aNumero;
 const subtotal = (r: Renglon) => Math.round((numero(r.kilos) || 0) * (numero(r.precio) || 0) * 100) / 100;
 
 type Props = { clienteId: string; onListo: () => void };
@@ -28,7 +29,7 @@ export function FormVenta({
   const [fecha, setFecha] = useState(venta?.fecha ?? hoyISO);
   const [comprobante, setComprobante] = useState(venta?.comprobante ?? "");
   const [renglones, setRenglones] = useState<Renglon[]>(
-    venta ? venta.items.map((i) => ({ detalle: i.detalle, kilos: String(i.kilos), precio: String(i.precio) })) : [RENGLON_VACIO],
+    venta ? venta.items.map((i) => ({ detalle: i.detalle, kilos: aCampo(i.kilos, 3), precio: aCampo(i.precio) })) : [RENGLON_VACIO],
   );
   const { pendiente, error, setError, correr } = useAccion();
 
@@ -45,7 +46,7 @@ export function FormVenta({
         const nuevo = { ...r, [campo]: valor };
         // Al elegir un corte con precio de lista, completa el precio si estaba vacío.
         const lista = campo === "detalle" ? producto(valor)?.precio : null;
-        if (lista && !r.precio) nuevo.precio = String(lista);
+        if (lista && !r.precio) nuevo.precio = aCampo(lista);
         return nuevo;
       }),
     );
@@ -95,10 +96,10 @@ export function FormVenta({
                   />
                 </Campo>
                 <Campo label="Kilos">
-                  <input type="number" min="0" step="0.001" className={CAMPO} value={r.kilos} onChange={(e) => cambiar(i, "kilos", e.target.value)} />
+                  <CampoNumero value={r.kilos} onChange={(valor) => cambiar(i, "kilos", valor)} decimales={3} />
                 </Campo>
                 <Campo label="Precio por kilo">
-                  <input type="number" min="0" step="0.01" className={CAMPO} value={r.precio} onChange={(e) => cambiar(i, "precio", e.target.value)} />
+                  <CampoNumero value={r.precio} onChange={(valor) => cambiar(i, "precio", valor)} />
                 </Campo>
                 <div className="text-sm">
                   <span className="mb-1 block font-medium text-slate-700">Subtotal</span>
@@ -157,7 +158,7 @@ export function FormVenta({
 export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: number; pago?: Extract<Movimiento, { tipo: "pago" }> }) {
   const [fecha, setFecha] = useState(pago?.fecha ?? hoyISO);
   const [comprobante, setComprobante] = useState(pago?.comprobante ?? "");
-  const [importe, setImporte] = useState(pago ? String(pago.importe) : "");
+  const [importe, setImporte] = useState(pago ? aCampo(pago.importe) : "");
   const [medioPago, setMedioPago] = useState<MedioPago>(pago?.medioPago ?? "efectivo");
   const { pendiente, error, setError, correr } = useAccion();
 
@@ -183,7 +184,7 @@ export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: n
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} inputMode="numeric" />
         </Campo>
         <Campo label="Importe">
-          <input type="number" min="0" step="0.01" className={CAMPO} value={importe} onChange={(e) => setImporte(e.target.value)} autoFocus />
+          <CampoNumero value={importe} onChange={setImporte} autoFocus />
         </Campo>
       </div>
 

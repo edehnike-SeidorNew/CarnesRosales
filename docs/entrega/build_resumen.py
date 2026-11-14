@@ -163,7 +163,7 @@ def footer(canvas, doc):
 # ── Capturas (2160 x 1410); se recorta el espacio vacío de abajo cuando sobra ──
 IMG = {
     "login": prepare("01-login.png"),
-    "inicio": prepare("02-inicio.png", (0, 0, 2160, 900)),
+    "inicio": prepare("02-inicio.png"),
     "clientes": prepare("03-clientes.png", (0, 0, 2160, 1000)),
     "filtros": prepare("04-filtros.png"),
     "cuenta": prepare("05-cuenta-corriente.png"),
@@ -200,7 +200,7 @@ story.append(Paragraph("Menú a la izquierda (se puede plegar para ganar lugar) 
 story.append(Spacer(1, 6))
 for label, text in [
     ("Ingreso", "pantalla de acceso con email y contraseña. Incluye «¿Olvidaste tu contraseña?» y «Creá tu cuenta» para quienes fueron invitados."),
-    ("Inicio", "tablero del negocio. Arriba se elige el período (semana, mes, trimestre, semestre o año) y las tarjetas muestran el total vendido, los kilos vendidos, lo cobrado y el total a cobrar. Debajo, una tarjeta por cada corte con sus kilos, el importe y el precio promedio. A la derecha, los cobros por medio de pago y los clientes con mayor saldo."),
+    ("Inicio", "tablero del negocio. Arriba se elige el período (semana, mes, trimestre, semestre o año) y las tarjetas muestran el total vendido, los kilos vendidos, lo cobrado y el total a cobrar. Debajo, una tarjeta por cada producto de la lista de precios, agrupadas por rubro (vacuno, cerdo, pollo y embutidos), con sus kilos, el importe y el precio promedio. A la derecha, los cobros por medio de pago y los clientes con mayor saldo."),
     ("Clientes", "lista de clientes con número, nombre de fantasía, titular, localidad, último pago y saldo adeudado. Tiene buscador y un botón de filtros (localidad, saldo, último pago y orden). Desde el panel derecho se da de alta un cliente nuevo, con su saldo anterior si ya debía algo."),
     ("Cuenta corriente del cliente", "se abre al tocar un cliente. Arriba, cuatro tarjetas: saldo adeudado, compras, pagado y último pago. Debajo, el <b>historial de movimientos</b> con las mismas columnas de la planilla (fecha, comprobante, concepto, medio de pago, kilos, precio por kilo, subtotal, total compra, pago entrante y saldo adeudado), filtros por período y los botones <b>Imprimir</b> y <b>Descargar PDF</b>. En el panel derecho: registrar venta, registrar pago, editar los datos del cliente y ver sus datos."),
     ("Registrar venta", "formulario del remito: fecha, número y uno o más productos. El producto se elige de la lista o se escribe uno nuevo."),
@@ -231,7 +231,7 @@ for t_, d_ in [
 story.append(CondPageBreak(135 * mm))  # que el título no quede solo al pie de la página
 story += heading("Así se ve")
 story.append(figure(IMG["login"], 150, "Ingreso: acceso con email y contraseña."))
-story.append(figure(IMG["inicio"], 150, "Inicio: período elegido arriba, tarjetas con los totales, una tarjeta por corte y, a la derecha, cobros por medio de pago y mayores saldos."))
+story.append(figure(IMG["inicio"], 150, "Inicio: período elegido arriba, tarjetas con los totales, una tarjeta por producto y, a la derecha, cobros por medio de pago y mayores saldos."))
 story.append(figure(IMG["clientes"], 150, "Clientes: buscador, botón de filtros y lista con último pago y saldo adeudado. A la derecha, las opciones y el resumen."))
 story.append(figure(IMG["filtros"], 150, "Filtros de clientes: localidad, saldo adeudado, último pago y orden de la lista."))
 story.append(figure(IMG["cuenta"], 150, "Cuenta corriente de un cliente: tarjetas con el saldo y el historial de movimientos, con filtros por período y descarga en PDF."))
@@ -249,8 +249,8 @@ story.append(Spacer(1, 4))
 story.append(callout(
     "FALTA PARA EMPEZAR A USARLO",
     "<b>Conectar la base de datos real:</b> crear el proyecto de Supabase, cargar la estructura y publicar el sistema con sus claves. "
-    "<b>Cargar la planilla completa:</b> hoy están cargados los clientes y la cuenta corriente que se usaron de muestra; falta el resto de los clientes y sus movimientos. "
-    "<b>Definir la lista de cortes</b> que se venden, para que cada uno tenga su tarjeta en el Inicio.",
+    "<b>Detalle histórico:</b> están cargados los 89 clientes de la planilla con su saldo al 11/11/2026 y la lista de precios completa; el detalle de las ventas y los pagos anteriores quedó cargado para una sola cuenta, de muestra. "
+    "<b>Revisar los nombres de los productos</b>: en las cuentas de la planilla figuran escritos de varias formas y hay que unificarlos con la lista de precios.",
     AZUL_HEX))
 story.append(Spacer(1, 6))
 story.append(Paragraph(

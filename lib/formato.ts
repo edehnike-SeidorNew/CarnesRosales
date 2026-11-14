@@ -58,3 +58,14 @@ export function haceDiasISO(dias: number): string {
   const dos = (n: number) => String(n).padStart(2, "0");
   return `${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())}`;
 }
+
+/** "13.000,50" (como lo muestra CampoNumero) -> 13000.5. Vacío o inválido -> NaN. */
+export function aNumero(texto: string): number {
+  const limpio = texto.trim().replace(/\./g, "").replace(",", ".");
+  return limpio === "" ? NaN : Number(limpio);
+}
+
+/** 13000.5 -> "13.000,5", para cargar un valor ya guardado en un CampoNumero. */
+export function aCampo(n: number, decimales = 2): string {
+  return n.toLocaleString("es-AR", { maximumFractionDigits: decimales });
+}

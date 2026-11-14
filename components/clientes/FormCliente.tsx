@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { actualizarCliente, crearCliente, eliminarCliente } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
-import { BOTON, BOTON_SECUNDARIO, CAMPO } from "@/lib/formato";
+import { CampoNumero } from "@/components/ui/CampoNumero";
+import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO } from "@/lib/formato";
 import type { Cliente, NuevoCliente } from "@/lib/tipos";
 import { Campo } from "./comunes";
 
@@ -30,7 +31,7 @@ export function FormCliente({
 }) {
   const router = useRouter();
   const [datos, setDatos] = useState<NuevoCliente>(cliente ?? VACIO);
-  const [saldoAnterior, setSaldoAnterior] = useState(saldoActual ? String(saldoActual) : "");
+  const [saldoAnterior, setSaldoAnterior] = useState(saldoActual ? aCampo(saldoActual) : "");
   const { pendiente, error, setError, correr } = useAccion();
 
   const cambiar = (campo: keyof NuevoCliente) => (e: { target: { value: string } }) =>
@@ -39,7 +40,7 @@ export function FormCliente({
   function enviar(e: FormEvent) {
     e.preventDefault();
     if (!datos.nombreFantasia.trim()) return setError("Ingresá el nombre de fantasía.");
-    const saldo = Number(saldoAnterior.replace(",", ".")) || 0;
+    const saldo = aNumero(saldoAnterior) || 0;
     if (saldo < 0) return setError("El saldo anterior no puede ser negativo.");
     if (cliente) correr(() => actualizarCliente(cliente.id, datos, saldo), () => onListo(cliente.id));
     else correr(() => crearCliente(datos, saldo), (dato) => onListo(dato.id));
@@ -73,7 +74,7 @@ export function FormCliente({
           <input className={CAMPO} value={datos.contacto} onChange={cambiar("contacto")} placeholder="Teléfono o email" />
         </Campo>
         <Campo label={cliente ? "Saldo anterior (lo que debía antes de empezar a registrar)" : "Saldo anterior (si ya debía algo)"}>
-          <input type="number" min="0" step="0.01" className={CAMPO} value={saldoAnterior} onChange={(e) => setSaldoAnterior(e.target.value)} />
+          <CampoNumero value={saldoAnterior} onChange={setSaldoAnterior} />
         </Campo>
         <Campo label="Observaciones" className="sm:col-span-2">
           <textarea className={CAMPO} rows={3} value={datos.observaciones} onChange={cambiar("observaciones")} />

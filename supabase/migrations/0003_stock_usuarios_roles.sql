@@ -311,6 +311,9 @@ $$;
 -- Precio de venta por kilo de cada corte (para completar el precio solo al vender). Puede quedar vacío.
 alter table public.productos add column precio numeric(12, 2) check (precio is null or precio > 0);
 
+-- Rubro del producto (Vacuno, Cerdo, Pollo, Embutidos y chacinados), para agruparlos en el Inicio.
+alter table public.productos add column categoria text not null default '';
+
 -- Email del usuario que cargó la fila. Lo completa la base; lo cargado desde el SQL Editor queda vacío.
 alter table public.clientes          add column creado_por text not null default coalesce(auth.jwt() ->> 'email', '');
 alter table public.movimientos       add column creado_por text not null default coalesce(auth.jwt() ->> 'email', '');

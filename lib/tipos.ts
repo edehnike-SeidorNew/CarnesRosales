@@ -54,7 +54,7 @@ export type CambiosMovimiento =
 export type NuevoCliente = Omit<Cliente, "id" | "numero">;
 
 /** Corte del catálogo, con su precio de lista por kilo (null = sin precio cargado). */
-export type Producto = { nombre: string; precio: number | null };
+export type Producto = { nombre: string; precio: number | null; /** Rubro (Vacuno, Cerdo...); "" si no tiene. */ categoria: string };
 
 /** Entrada de mercadería (compra) o corrección contra el conteo real (ajuste, + o -). */
 export type StockMovimiento = {
@@ -114,6 +114,7 @@ export function saldoDe(clienteId: string, movimientos: Movimiento[]): number {
 
 export type StockDeProducto = {
   nombre: string;
+  categoria: string;
   precio: number | null;
   /** Fecha de la primera carga de stock (null = todavía no se cargó: el stock es cero). */
   desde: string | null;
@@ -139,12 +140,16 @@ export function stockPorProducto(datos: Pick<Datos, "productos" | "movimientos" 
     const clave = nombre.toLowerCase();
     let fila = mapa.get(clave);
     if (!fila) {
-      fila = { nombre, precio: null, desde: null, comprado: 0, ajustes: 0, vendido: 0, stock: 0, ultimoCosto: null };
+      fila = { nombre, categoria: "", precio: null, desde: null, comprado: 0, ajustes: 0, vendido: 0, stock: 0, ultimoCosto: null };
       mapa.set(clave, fila);
     }
     return fila;
   };
-  for (const p of datos.productos) de(p.nombre).precio = p.precio;
+  for (const p of datos.productos) {
+    const fila = de(p.nombre);
+    fila.precio = p.precio;
+    fila.categoria = p.categoria;
+  }
 
   const ultimaCompra = new Map<string, string>();
   for (const s of datos.stock) {

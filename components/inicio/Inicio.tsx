@@ -63,6 +63,19 @@ export function Inicio({
   const totalStock = stock.reduce((t, p) => t + p.stock, 0);
   const hayStock = stock.some((p) => p.desde !== null);
   const cortes = [...porCorte.values()].sort((a, b) => b.kilos - a.kilos || a.nombre.localeCompare(b.nombre, "es"));
+
+  // Agrupados por rubro, en el orden de la lista de precios; lo que no tiene rubro va al final.
+  const rubroDe = new Map(stock.map((p) => [p.nombre.toLowerCase(), p.categoria]));
+  const ORDEN = ["Vacuno", "Cerdo", "Pollo", "Embutidos y chacinados"];
+  const porRubro = new Map<string, typeof cortes>();
+  for (const c of cortes) {
+    const rubro = rubroDe.get(c.nombre.toLowerCase()) || "Otros";
+    porRubro.set(rubro, [...(porRubro.get(rubro) ?? []), c]);
+  }
+  const posicion = (rubro: string) => (ORDEN.includes(rubro) ? ORDEN.indexOf(rubro) : rubro === "Otros" ? 99 : 50);
+  const rubros = [...porRubro.entries()]
+    .sort((a, b) => posicion(a[0]) - posicion(b[0]) || a[0].localeCompare(b[0], "es"))
+    .map(([rubro, lista]) => ({ rubro, lista, kilosRubro: lista.reduce((t, c) => t + c.kilos, 0) }));
   const kilosVendidos = cortes.reduce((t, c) => t + c.kilos, 0);
   const vendido = redondear(cortes.reduce((t, c) => t + c.importe, 0));
 
@@ -141,7 +154,7 @@ export function Inicio({
           <Tarjeta
             titulo={`Kilos vendidos ${EN_PERIODO[periodo]}`}
             valor={`${kilos(kilosVendidos)} kg`}
-            nota={`Entre ${vendidos} ${vendidos === 1 ? "corte" : "cortes"}`}
+            nota={`Entre ${vendidos} ${vendidos === 1 ? "producto" : "productos"}`}
           />
           <Tarjeta
             titulo={`Cobrado ${EN_PERIODO[periodo]}`}
@@ -156,32 +169,44 @@ export function Inicio({
           />
         </div>
 
-        <h2 className="mb-3 text-lg font-bold text-brand">Kilos vendidos por corte {EN_PERIODO[periodo]}</h2>
+        <h2 className="mb-3 text-lg font-bold text-brand">Kilos vendidos por producto {EN_PERIODO[periodo]}</h2>
         {cortes.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-brand-border bg-white p-10 text-sm text-slate-500">
             <ScaleIcon className="h-6 w-6" />
-            Todavía no hay cortes cargados.
+            Todavía no hay productos cargados.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {cortes.map((c) => (
-              <div key={c.nombre} className={`rounded-2xl border border-brand-border bg-white p-4 ${c.kilos === 0 ? "opacity-60" : ""}`}>
-                <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
-                    <ScaleIcon className="h-4 w-4" />
+          <div className="space-y-5">
+            {rubros.map(({ rubro, lista, kilosRubro }) => (
+              <section key={rubro}>
+                <div className="mb-2 flex items-baseline justify-between gap-3 border-b border-brand-border pb-1.5">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{rubro}</h3>
+                  <span className="text-xs tabular-nums text-slate-500">
+                    {kilos(kilosRubro)} kg · {lista.length} {lista.length === 1 ? "producto" : "productos"}
                   </span>
-                  <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{c.nombre}</p>
                 </div>
-                <p className="mt-3 text-xl font-bold tabular-nums text-slate-900">{kilos(c.kilos)} kg</p>
-                {c.kilos > 0 ? (
-                  <>
-                    <p className="mt-0.5 text-sm tabular-nums text-slate-700">{pesos(c.importe)}</p>
-                    <p className="mt-0.5 text-xs tabular-nums text-slate-500">Promedio {pesos(c.importe / c.kilos)} por kilo</p>
-                  </>
-                ) : (
-                  <p className="mt-0.5 text-xs text-slate-500">Sin ventas en el período</p>
-                )}
-              </div>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {lista.map((c) => (
+                    <div key={c.nombre} className={`rounded-2xl border border-brand-border bg-white p-4 ${c.kilos === 0 ? "opacity-60" : ""}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                          <ScaleIcon className="h-4 w-4" />
+                        </span>
+                        <p className="min-w-0 text-sm font-semibold leading-tight text-slate-900">{c.nombre}</p>
+                      </div>
+                      <p className="mt-3 text-xl font-bold tabular-nums text-slate-900">{kilos(c.kilos)} kg</p>
+                      {c.kilos > 0 ? (
+                        <>
+                          <p className="mt-0.5 text-sm tabular-nums text-slate-700">{pesos(c.importe)}</p>
+                          <p className="mt-0.5 text-xs tabular-nums text-slate-500">Promedio {pesos(c.importe / c.kilos)} por kilo</p>
+                        </>
+                      ) : (
+                        <p className="mt-0.5 text-xs text-slate-500">Sin ventas en el período</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         )}

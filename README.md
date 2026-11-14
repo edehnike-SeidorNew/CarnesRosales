@@ -17,12 +17,13 @@ ejemplo, en memoria (se pierden al reiniciar).
 1. **Crear el proyecto** en [supabase.com](https://supabase.com) (región São Paulo queda cerca).
 2. **Correr los SQL, en este orden**, cada uno en *SQL Editor > New query > pegar todo > Run*:
    1. `supabase/migrations/0001_esquema.sql` — clientes, productos, movimientos.
-   2. `supabase/seed/0002_datos_planilla.sql` — datos de la planilla. Termina con un control contra
-      los totales de la planilla: si un número no coincide, no carga nada. Sólo corre con la base vacía.
+   2. `supabase/seed/0002_datos_planilla.sql` — los 89 clientes de la planilla con su saldo al
+      11/11/2026 (y la cuenta completa de El Buen Gusto). Termina con un control del saldo de cada
+      cliente y del total: si un número no coincide, no carga nada. Sólo corre con la base vacía.
    3. `supabase/migrations/0003_stock_usuarios_roles.sql` — stock, proveedores, lista de precios,
       quién cargó cada cosa y usuarios con roles.
-   4. `supabase/seed/0004_cortes.sql` — catálogo de cortes (opcional). **Revisar la lista antes de
-      correrlo:** no sale de la planilla.
+   4. `supabase/seed/0004_cortes.sql` — catálogo de productos con rubro y precio, tomado de la hoja
+      LISTA DE PRECIOS de la planilla.
 3. **Variables de entorno:** copiar `.env.local.example` como `.env.local` y completar
    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (*Project Settings > API*; la clave es
    la "anon" / "publishable", nunca la "service_role" / "secret"). Reiniciar `npm run dev`.

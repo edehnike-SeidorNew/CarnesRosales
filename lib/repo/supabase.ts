@@ -141,7 +141,9 @@ export const repoSupabase: Repo = {
           .order("orden")
           .range(d, h),
       ),
-      todas<{ nombre: string; precio: Num | null }>((d, h) => db.from("productos").select("nombre, precio").order("nombre").range(d, h)),
+      todas<{ nombre: string; precio: Num | null; categoria: string }>((d, h) =>
+        db.from("productos").select("nombre, precio, categoria").order("nombre").range(d, h),
+      ),
       todas<FilaStock>((d, h) =>
         db
           .from("stock_movimientos")
@@ -163,7 +165,7 @@ export const repoSupabase: Repo = {
     return {
       clientes: clientes.map(aCliente),
       movimientos: movimientos.map(aMovimiento),
-      productos: productos.map((p): Producto => ({ nombre: p.nombre, precio: p.precio === null ? null : Number(p.precio) })),
+      productos: productos.map((p): Producto => ({ nombre: p.nombre, precio: p.precio === null ? null : Number(p.precio), categoria: p.categoria ?? "" })),
       stock: stock.map(
         (s): StockMovimiento => ({
           id: s.id,

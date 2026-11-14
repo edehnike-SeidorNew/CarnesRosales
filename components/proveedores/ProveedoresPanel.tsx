@@ -7,9 +7,10 @@ import { useAccion } from "@/components/comun/useAccion";
 import { CardLateral } from "@/components/layout/CardLateral";
 import { CashIcon, HistoryIcon, TrashIcon, TruckIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
+import { CampoNumero } from "@/components/ui/CampoNumero";
 import { DateField } from "@/components/ui/DateField";
 import { Select } from "@/components/ui/Select";
-import { BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
+import { aNumero, BOTON, BOTON_SECUNDARIO, CAMPO, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
 import {
   etiquetaMedio,
   MEDIOS_PAGO,
@@ -47,7 +48,7 @@ function FormPagoProveedor({
   const [medioPago, setMedioPago] = useState<MedioPago>("efectivo");
   const { pendiente, error, setError, correr } = useAccion();
 
-  const monto = Number(importe.replace(",", ".")) || 0;
+  const monto = aNumero(importe) || 0;
   const saldo = saldos.find((s) => s.proveedor.id === proveedorId)?.saldo ?? 0;
 
   function enviar(e: FormEvent) {
@@ -70,7 +71,7 @@ function FormPagoProveedor({
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} />
         </Campo>
         <Campo label="Importe">
-          <input type="number" min="0" step="0.01" className={CAMPO} value={importe} onChange={(e) => setImporte(e.target.value)} autoFocus />
+          <CampoNumero value={importe} onChange={setImporte} autoFocus />
         </Campo>
       </div>
 

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { CLIENTES, MOVIMIENTOS } from "@/lib/datos";
+import { CATALOGO, CLIENTES, MOVIMIENTOS } from "@/lib/datos";
 import { decodeMockSession, MOCK_COOKIE_NAME } from "@/lib/mock/auth";
 import type { Cliente, Datos, Invitacion, Miembro, Movimiento, PagoProveedor, Producto, Proveedor, StockMovimiento } from "@/lib/tipos";
 import type { Repo } from "./index";
@@ -19,20 +19,22 @@ type Estado = {
   invitaciones: Invitacion[];
 };
 
-const global = globalThis as { __carnesRosalesDemo4?: Estado };
+const global = globalThis as { __carnesRosalesDemo5?: Estado };
 // En globalThis para que sobreviva a las recargas de código en desarrollo.
-const estado: Estado = (global.__carnesRosalesDemo4 ??= {
+const estado: Estado = (global.__carnesRosalesDemo5 ??= {
   clientes: [...CLIENTES],
   movimientos: [...MOVIMIENTOS],
-  precios: new Map(),
-  // Lista de ejemplo de la primera demo (la planilla sólo muestra Picada y Vacíos).
-  cortes: ["Asado", "Nalga", "Cuadril", "Bola de lomo", "Matambre", "Milanesa"],
+  precios: new Map(CATALOGO.flatMap((p) => (p.precio === null ? [] : [[p.nombre.toLowerCase(), p.precio] as [string, number]]))),
+  // Los artículos de la hoja LISTA DE PRECIOS de la planilla.
+  cortes: CATALOGO.map((p) => p.nombre),
   stock: [],
   proveedores: [],
   pagosProveedores: [],
   miembros: [{ id: "demo-2", email: "vendedor@demo.test", nombre: "Vendedor de ejemplo", rol: "vendedor", activo: true }],
   invitaciones: [],
 });
+
+const CATEGORIAS = new Map(CATALOGO.map((p) => [p.nombre.toLowerCase(), p.categoria]));
 
 const nuevoId = (prefijo: string) => `${prefijo}-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
 const limpio = (texto: string) => texto.trim().replace(/\s+/g, " ");
@@ -50,7 +52,7 @@ function productos(): Producto[] {
   for (const s of estado.stock) if (!vistos.has(s.producto.toLowerCase())) vistos.set(s.producto.toLowerCase(), s.producto);
   for (const c of estado.cortes) if (!vistos.has(c.toLowerCase())) vistos.set(c.toLowerCase(), c);
   return [...vistos.entries()]
-    .map(([clave, nombre]) => ({ nombre, precio: estado.precios.get(clave) ?? null }))
+    .map(([clave, nombre]) => ({ nombre, precio: estado.precios.get(clave) ?? null, categoria: CATEGORIAS.get(clave) ?? "" }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
