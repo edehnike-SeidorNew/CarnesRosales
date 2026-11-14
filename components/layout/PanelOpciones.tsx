@@ -31,7 +31,7 @@ export function PanelOpciones<Id extends string>({
 }) {
   return (
     <ColumnaLateral ancho={ancho} fija={fija} desplazamiento={desplazamiento}>
-      <CardLateral titulo={titulo}>
+      <CardLateral titulo={titulo} primero>
         <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap xl:flex-col">
           {opciones.map(({ id, label, Icon }) => {
             const active = id === seleccion;

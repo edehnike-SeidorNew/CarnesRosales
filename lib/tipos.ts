@@ -48,6 +48,7 @@ type SinAuto<T> = T extends unknown ? Omit<T, "id" | "creadoPor"> : never;
 export type NuevoMovimiento = SinAuto<Movimiento>;
 /** Lo que se puede corregir de un movimiento ya cargado. */
 export type CambiosMovimiento =
+  | { tipo: "saldo_inicial"; importe: number }
   | { tipo: "venta"; fecha: string; comprobante: string; items: ItemVenta[] }
   | { tipo: "pago"; fecha: string; comprobante: string; importe: number; medioPago: MedioPago | null };
 export type NuevoCliente = Omit<Cliente, "id" | "numero">;

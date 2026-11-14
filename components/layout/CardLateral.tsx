@@ -4,7 +4,8 @@ import { useState, type ReactNode } from "react";
 import { ChevronRightIcon } from "./icons";
 
 /**
- * Columna a la derecha del contenido (arriba en pantallas chicas); apila una o más cards.
+ * Columna a la derecha del contenido; apila una o más cards. En pantallas chicas la columna se
+ * "disuelve" (display: contents): la card de opciones queda arriba del contenido y las demás, abajo.
  * `fija` la deja pegada mientras se scrollea; no conviene si las cards pueden ser más altas que la pantalla.
  */
 export function ColumnaLateral({
@@ -20,18 +21,27 @@ export function ColumnaLateral({
   children: ReactNode;
 }) {
   return (
-    <aside className={`space-y-4 xl:order-last xl:shrink-0 ${fija ? "xl:sticky xl:top-0" : ""} ${ancho} ${desplazamiento}`}>
+    <aside className={`space-y-4 max-xl:contents xl:order-last xl:shrink-0 ${fija ? "xl:sticky xl:top-0" : ""} ${ancho} ${desplazamiento}`}>
       {children}
     </aside>
   );
 }
 
 /** Card plegable con título. */
-export function CardLateral({ titulo, children }: { titulo: string; children: ReactNode }) {
+export function CardLateral({
+  titulo,
+  children,
+  primero = false,
+}: {
+  titulo: string;
+  children: ReactNode;
+  /** En pantallas chicas va arriba del contenido (el menú de opciones); si no, va abajo. */
+  primero?: boolean;
+}) {
   const [abierto, setAbierto] = useState(true);
 
   return (
-    <section className="rounded-2xl border border-brand-border p-4">
+    <section className={`rounded-2xl border border-brand-border p-4 ${primero ? "max-xl:order-first" : "max-xl:order-last"}`}>
       <button
         type="button"
         onClick={() => setAbierto((a) => !a)}

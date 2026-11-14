@@ -5,7 +5,7 @@ import Link from "next/link";
 import { eliminarMovimiento } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
 import { CardLateral } from "@/components/layout/CardLateral";
-import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
+import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, PrinterIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
 import { BOTON_SECUNDARIO, fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
 import { efectoEnSaldo, etiquetaMedio, redondear, subtotalItem, type Cliente, type Movimiento, type StockDeProducto } from "@/lib/tipos";
@@ -162,7 +162,13 @@ export function DetalleCliente({
   const [periodo, setPeriodo] = useState<Periodo>("todo");
 
   // Orden cronológico; a igual fecha, en el orden en que se cargaron.
-  const propios = movimientos.map((m, orden) => ({ m, orden })).sort((a, b) => a.m.fecha.localeCompare(b.m.fecha) || a.orden - b.orden);
+  const propios = movimientos
+    .map((m, orden) => ({ m, orden }))
+    .sort(
+      (a, b) =>
+        // El saldo anterior va siempre primero, aunque se haya cargado después.
+        Number(b.m.tipo === "saldo_inicial") - Number(a.m.tipo === "saldo_inicial") || a.m.fecha.localeCompare(b.m.fecha) || a.orden - b.orden,
+    );
 
   let acumulado = 0;
   const filas = propios.map(({ m }) => {
@@ -256,15 +262,27 @@ export function DetalleCliente({
           {vista === "historial" && !editando && (
             <>
               <FiltroPeriodo periodo={periodo} onChange={setPeriodo} />
-              {/* El PDF respeta el período elegido. */}
-              <a
-                href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}`}
-                className={`${BOTON_SECUNDARIO} ml-auto !px-3 !py-1.5`}
-                title="Descargar el resumen de cuenta para enviarle al cliente"
-              >
-                <DownloadIcon className="h-4 w-4" />
-                Descargar PDF
-              </a>
+              {/* El PDF respeta el período elegido: con "Semana" trae sólo los movimientos de la semana. */}
+              <div className="ml-auto flex flex-wrap gap-2">
+                <a
+                  href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}&ver=1`}
+                  target="_blank"
+                  rel="noopener"
+                  className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}
+                  title="Abrir el resumen del período elegido para imprimirlo"
+                >
+                  <PrinterIcon className="h-4 w-4" />
+                  Imprimir
+                </a>
+                <a
+                  href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}`}
+                  className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}
+                  title="Descargar el resumen del período elegido para enviarle al cliente"
+                >
+                  <DownloadIcon className="h-4 w-4" />
+                  Descargar PDF
+                </a>
+              </div>
             </>
           )}
         </div>
@@ -283,7 +301,16 @@ export function DetalleCliente({
         )}
         {!editando && vista === "venta" && <FormVenta clienteId={cliente.id} stock={stock} onListo={volver} />}
         {!editando && vista === "pago" && <FormPago clienteId={cliente.id} saldo={saldo} onListo={volver} />}
-        {!editando && vista === "editar" && <FormCliente cliente={cliente} onListo={volver} onCancelar={volver} />}
+        {!editando && vista === "editar" && (
+          <FormCliente
+            cliente={cliente}
+            saldoAnterior={saldoAnterior}
+            tieneMovimientos={propios.some(({ m }) => m.tipo !== "saldo_inicial")}
+            puedeBorrar={puedeBorrar}
+            onListo={volver}
+            onCancelar={volver}
+          />
+        )}
       </div>
     </div>
   );

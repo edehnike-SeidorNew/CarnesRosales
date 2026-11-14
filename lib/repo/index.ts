@@ -19,6 +19,8 @@ export interface Repo {
 
   crearCliente(datos: NuevoCliente): Promise<Cliente>;
   actualizarCliente(id: string, datos: NuevoCliente): Promise<void>;
+  /** Sólo funciona si el cliente no tiene movimientos. */
+  eliminarCliente(id: string): Promise<void>;
 
   crearMovimiento(movimiento: NuevoMovimiento): Promise<void>;
   actualizarMovimiento(id: string, cambios: CambiosMovimiento): Promise<void>;

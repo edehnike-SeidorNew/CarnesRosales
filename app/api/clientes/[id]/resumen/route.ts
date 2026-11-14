@@ -15,13 +15,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const cliente = datos.clientes.find((c) => c.id === id);
   if (!cliente) return NextResponse.json({ error: "No encontramos ese cliente." }, { status: 404 });
 
-  const pedido = new URL(request.url).searchParams.get("periodo");
+  const parametros = new URL(request.url).searchParams;
+  const pedido = parametros.get("periodo");
+  // ?ver=1 lo abre en el navegador (para imprimir) en lugar de descargarlo.
+  const enLinea = parametros.get("ver") === "1";
   const periodo: Periodo = PERIODOS.some((p) => p.id === pedido) ? (pedido as Periodo) : "todo";
 
   const movimientos = datos.movimientos
     .map((m, orden) => ({ m, orden }))
     .filter(({ m }) => m.clienteId === id)
-    .sort((a, b) => a.m.fecha.localeCompare(b.m.fecha) || a.orden - b.orden)
+    .sort(
+      (a, b) =>
+        Number(b.m.tipo === "saldo_inicial") - Number(a.m.tipo === "saldo_inicial") || a.m.fecha.localeCompare(b.m.fecha) || a.orden - b.orden,
+    )
     .map(({ m }) => m);
 
   const pdf = await generarResumenPdf({ cliente, movimientos, desde: inicioDePeriodo(periodo), hoy: hoyISO() });
@@ -36,7 +42,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   return new NextResponse(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="resumen-${nombre || "cliente"}-${hoyISO()}.pdf"`,
+      "Content-Disposition": `${enLinea ? "inline" : "attachment"}; filename="resumen-${nombre || "cliente"}-${hoyISO()}.pdf"`,
       "Cache-Control": "no-store",
     },
   });

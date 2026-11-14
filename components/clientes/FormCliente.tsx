@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { actualizarCliente, crearCliente } from "@/app/acciones";
+import { useRouter } from "next/navigation";
+import { actualizarCliente, crearCliente, eliminarCliente } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
 import { BOTON, BOTON_SECUNDARIO, CAMPO } from "@/lib/formato";
 import type { Cliente, NuevoCliente } from "@/lib/tipos";
@@ -12,15 +13,24 @@ const VACIO: NuevoCliente = { nombreFantasia: "", titular: "", direccion: "", lo
 /** Alta de cliente, o corrección de sus datos si se pasa `cliente`. */
 export function FormCliente({
   cliente,
+  saldoAnterior: saldoActual = 0,
+  tieneMovimientos = false,
+  puedeBorrar = false,
   onListo,
   onCancelar,
 }: {
   cliente?: Cliente;
+  /** Al editar: el saldo anterior que tiene cargado hoy. */
+  saldoAnterior?: number;
+  /** Al editar: si tiene ventas o pagos (en ese caso no se puede eliminar). */
+  tieneMovimientos?: boolean;
+  puedeBorrar?: boolean;
   onListo: (id: string) => void;
   onCancelar: () => void;
 }) {
+  const router = useRouter();
   const [datos, setDatos] = useState<NuevoCliente>(cliente ?? VACIO);
-  const [saldoAnterior, setSaldoAnterior] = useState("");
+  const [saldoAnterior, setSaldoAnterior] = useState(saldoActual ? String(saldoActual) : "");
   const { pendiente, error, setError, correr } = useAccion();
 
   const cambiar = (campo: keyof NuevoCliente) => (e: { target: { value: string } }) =>
@@ -29,8 +39,16 @@ export function FormCliente({
   function enviar(e: FormEvent) {
     e.preventDefault();
     if (!datos.nombreFantasia.trim()) return setError("Ingresá el nombre de fantasía.");
-    if (cliente) correr(() => actualizarCliente(cliente.id, datos), () => onListo(cliente.id));
-    else correr(() => crearCliente(datos, Number(saldoAnterior.replace(",", ".")) || 0), (dato) => onListo(dato.id));
+    const saldo = Number(saldoAnterior.replace(",", ".")) || 0;
+    if (saldo < 0) return setError("El saldo anterior no puede ser negativo.");
+    if (cliente) correr(() => actualizarCliente(cliente.id, datos, saldo), () => onListo(cliente.id));
+    else correr(() => crearCliente(datos, saldo), (dato) => onListo(dato.id));
+  }
+
+  function eliminar() {
+    if (!cliente) return;
+    if (!window.confirm(`¿Eliminar a ${cliente.nombreFantasia}? No se puede deshacer.`)) return;
+    correr(() => eliminarCliente(cliente.id), () => router.push("/clientes"));
   }
 
   return (
@@ -54,11 +72,9 @@ export function FormCliente({
         <Campo label="Contacto">
           <input className={CAMPO} value={datos.contacto} onChange={cambiar("contacto")} placeholder="Teléfono o email" />
         </Campo>
-        {!cliente && (
-          <Campo label="Saldo anterior (si ya debía algo)">
-            <input type="number" min="0" step="0.01" className={CAMPO} value={saldoAnterior} onChange={(e) => setSaldoAnterior(e.target.value)} />
-          </Campo>
-        )}
+        <Campo label={cliente ? "Saldo anterior (lo que debía antes de empezar a registrar)" : "Saldo anterior (si ya debía algo)"}>
+          <input type="number" min="0" step="0.01" className={CAMPO} value={saldoAnterior} onChange={(e) => setSaldoAnterior(e.target.value)} />
+        </Campo>
         <Campo label="Observaciones" className="sm:col-span-2">
           <textarea className={CAMPO} rows={3} value={datos.observaciones} onChange={cambiar("observaciones")} />
         </Campo>
@@ -73,7 +89,21 @@ export function FormCliente({
         <button type="button" onClick={onCancelar} className={BOTON_SECUNDARIO}>
           Cancelar
         </button>
+        {cliente && puedeBorrar && (
+          <button
+            type="button"
+            onClick={eliminar}
+            disabled={pendiente || tieneMovimientos}
+            title={tieneMovimientos ? "Tiene ventas o pagos cargados: primero hay que eliminarlos" : undefined}
+            className="ml-auto inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
+          >
+            Eliminar cliente
+          </button>
+        )}
       </div>
+      {cliente && puedeBorrar && tieneMovimientos && (
+        <p className="mt-2 text-right text-xs text-slate-500">Para eliminar un cliente, primero hay que eliminar sus ventas y pagos.</p>
+      )}
     </form>
   );
 }

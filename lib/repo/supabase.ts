@@ -207,6 +207,15 @@ export const repoSupabase: Repo = {
     if (!data?.length) throw new Error("No se pudo modificar el cliente (sin permiso o no existe)");
   },
 
+  async eliminarCliente(id) {
+    const db = await createClient();
+    // El saldo anterior se va con el cliente; si tiene ventas o pagos, la base no deja borrarlo.
+    await db.from("movimientos").delete().eq("cliente_id", id).eq("tipo", "saldo_inicial");
+    const { data, error } = await db.from("clientes").delete().eq("id", id).select("id");
+    comprobar(error);
+    if (!data?.length) throw new Error("No se pudo eliminar el cliente (sin permiso o no existe)");
+  },
+
   async crearMovimiento(m) {
     const db = await createClient();
     if (m.tipo === "venta") {
@@ -240,6 +249,12 @@ export const repoSupabase: Repo = {
         p_items: cambios.items,
       });
       return comprobar(error);
+    }
+    if (cambios.tipo === "saldo_inicial") {
+      const { data, error } = await db.from("movimientos").update({ importe: cambios.importe }).eq("id", id).eq("tipo", "saldo_inicial").select("id");
+      comprobar(error);
+      if (!data?.length) throw new Error("No se pudo modificar el saldo anterior (sin permiso o no existe)");
+      return;
     }
     const { data, error } = await db
       .from("movimientos")

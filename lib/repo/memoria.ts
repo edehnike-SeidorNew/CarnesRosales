@@ -93,6 +93,11 @@ export const repoMemoria: Repo = {
     estado.clientes = estado.clientes.map((c) => (c.id === id ? { ...c, ...datos } : c));
   },
 
+  async eliminarCliente(id) {
+    estado.movimientos = estado.movimientos.filter((m) => m.clienteId !== id);
+    estado.clientes = estado.clientes.filter((c) => c.id !== id);
+  },
+
   async crearMovimiento(datos) {
     const movimiento = { ...datos, id: nuevoId("m"), creadoPor: await quien() } as Movimiento;
     if (movimiento.tipo === "venta") movimiento.items = movimiento.items.map((i) => ({ ...i, detalle: nombreDeProducto(i.detalle) }));

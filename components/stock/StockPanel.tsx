@@ -286,7 +286,7 @@ function NuevoCorte() {
   return (
     <form onSubmit={enviar} className="mb-4 rounded-lg border border-brand-border bg-white p-4">
       <div className="flex flex-wrap items-end gap-3">
-        <Campo label="Agregar un corte al catálogo" className="min-w-56 flex-1">
+        <Campo label="Agregar cortes al catálogo (varios separados por coma)" className="min-w-56 flex-1">
           <input className={CAMPO} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej.: Asado, Nalga, Cuadril" />
         </Campo>
         <button type="submit" disabled={pendiente} className={`${BOTON} disabled:opacity-60`}>

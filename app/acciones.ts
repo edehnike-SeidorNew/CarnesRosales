@@ -25,10 +25,16 @@ async function ejecutar<T>(permiso: Permiso, operacion: () => Promise<T>): Promi
     revalidatePath("/", "layout");
     return { ok: true, dato };
   } catch (e) {
+    if (e instanceof Aviso) return error(e.message);
     console.error("[acciones]", e);
     return error("No se pudo guardar. Probá de nuevo.");
   }
 }
+
+/** Error con un mensaje pensado para mostrarle al usuario tal cual. */
+class Aviso extends Error {}
+
+const hoyAR = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" });
 
 function limpiarCliente(datos: NuevoCliente): NuevoCliente {
   return {
@@ -57,19 +63,48 @@ export async function crearCliente(datos: NuevoCliente, saldoAnterior = 0): Prom
   return ejecutar("cargar", async () => {
     const creado = await repo().crearCliente(cliente);
     if (saldoAnterior > 0) {
-      const hoy = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" });
-      await repo().crearMovimiento({ clienteId: creado.id, fecha: hoy, tipo: "saldo_inicial", comprobante: "", importe: redondear(saldoAnterior) });
+      await repo().crearMovimiento({ clienteId: creado.id, fecha: hoyAR(), tipo: "saldo_inicial", comprobante: "", importe: redondear(saldoAnterior) });
     }
     return { id: creado.id };
   });
 }
 
-export async function actualizarCliente(id: string, datos: NuevoCliente): Promise<Resultado> {
+/** Corrige los datos del cliente y, si se pasa, su saldo anterior (lo que debía antes de empezar a registrar). */
+export async function actualizarCliente(id: string, datos: NuevoCliente, saldoAnterior?: number): Promise<Resultado> {
   const cliente = limpiarCliente(datos);
   if (!texto(id)) return error("Falta el cliente.");
   if (!cliente.nombreFantasia) return error("Ingresá el nombre de fantasía.");
+  if (saldoAnterior !== undefined && (typeof saldoAnterior !== "number" || !Number.isFinite(saldoAnterior) || saldoAnterior < 0)) {
+    return error("Revisá el saldo anterior.");
+  }
   return ejecutar("cargar", async () => {
     await repo().actualizarCliente(id, cliente);
+    if (saldoAnterior === undefined) return null;
+
+    const importe = redondear(saldoAnterior);
+    const propios = (await repo().obtenerDatos()).movimientos.filter((m) => m.clienteId === id);
+    const inicial = propios.find((m) => m.tipo === "saldo_inicial");
+    if (inicial) {
+      if (inicial.tipo === "saldo_inicial" && inicial.importe !== importe) {
+        await repo().actualizarMovimiento(inicial.id, { tipo: "saldo_inicial", importe });
+      }
+    } else if (importe > 0) {
+      // Con la fecha del primer movimiento, para que quede al principio de la cuenta.
+      const fecha = propios.reduce((min, m) => (m.fecha < min ? m.fecha : min), hoyAR());
+      await repo().crearMovimiento({ clienteId: id, fecha, tipo: "saldo_inicial", comprobante: "", importe });
+    }
+    return null;
+  });
+}
+
+export async function eliminarCliente(id: string): Promise<Resultado> {
+  if (!texto(id)) return error("Falta el cliente.");
+  return ejecutar("borrar", async () => {
+    const { movimientos } = await repo().obtenerDatos();
+    if (movimientos.some((m) => m.clienteId === id && m.tipo !== "saldo_inicial")) {
+      throw new Aviso("Este cliente tiene ventas o pagos cargados. Eliminá primero esos movimientos.");
+    }
+    await repo().eliminarCliente(id);
     return null;
   });
 }
@@ -199,11 +234,20 @@ export async function fijarPrecio(producto: string, precio: number | null): Prom
   });
 }
 
-export async function crearCorte(nombre: string): Promise<Resultado> {
-  const corte = texto(nombre, 80).replace(/\s+/g, " ");
-  if (!corte) return error("Escribí el nombre del corte.");
+/** Agrega uno o varios cortes al catálogo (separados por coma o por renglón). */
+export async function crearCorte(nombres: string): Promise<Resultado> {
+  const cortes = [
+    ...new Set(
+      texto(nombres, 2000)
+        .split(/[,;\n]+/)
+        .map((c) => c.trim().replace(/\s+/g, " ").slice(0, 80))
+        .filter(Boolean)
+        .map((c) => c.charAt(0).toUpperCase() + c.slice(1)),
+    ),
+  ];
+  if (cortes.length === 0) return error("Escribí el nombre del corte.");
   return ejecutar("cargar", async () => {
-    await repo().crearCorte(corte);
+    for (const corte of cortes) await repo().crearCorte(corte);
     return null;
   });
 }

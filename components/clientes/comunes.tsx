@@ -42,7 +42,7 @@ export function Tarjeta({ titulo, valor, nota, destacada = false }: { titulo: st
   return (
     <div className={`rounded-2xl border p-4 ${destacada ? "border-brand bg-brand text-white" : "border-brand-border bg-white"}`}>
       <p className={`text-xs font-semibold uppercase tracking-wide ${destacada ? "text-white/70" : "text-slate-500"}`}>{titulo}</p>
-      <p className={`mt-1 text-xl font-bold tabular-nums ${destacada ? "text-white" : "text-slate-900"}`}>{valor}</p>
+      <p className={`mt-1 break-words text-lg font-bold tabular-nums sm:text-xl ${destacada ? "text-white" : "text-slate-900"}`}>{valor}</p>
       {nota && <p className={`mt-0.5 text-xs ${destacada ? "text-white/70" : "text-slate-500"}`}>{nota}</p>}
     </div>
   );
