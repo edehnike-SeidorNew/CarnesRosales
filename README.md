@@ -21,6 +21,8 @@ ejemplo, en memoria (se pierden al reiniciar).
       los totales de la planilla: si un número no coincide, no carga nada. Sólo corre con la base vacía.
    3. `supabase/migrations/0003_stock_usuarios_roles.sql` — stock, proveedores, lista de precios,
       quién cargó cada cosa y usuarios con roles.
+   4. `supabase/seed/0004_cortes.sql` — catálogo de cortes (opcional). **Revisar la lista antes de
+      correrlo:** no sale de la planilla.
 3. **Variables de entorno:** copiar `.env.local.example` como `.env.local` y completar
    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (*Project Settings > API*; la clave es
    la "anon" / "publishable", nunca la "service_role" / "secret"). Reiniciar `npm run dev`.

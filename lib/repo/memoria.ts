@@ -19,13 +19,14 @@ type Estado = {
   invitaciones: Invitacion[];
 };
 
-const global = globalThis as { __carnesRosalesDemo3?: Estado };
+const global = globalThis as { __carnesRosalesDemo4?: Estado };
 // En globalThis para que sobreviva a las recargas de código en desarrollo.
-const estado: Estado = (global.__carnesRosalesDemo3 ??= {
+const estado: Estado = (global.__carnesRosalesDemo4 ??= {
   clientes: [...CLIENTES],
   movimientos: [...MOVIMIENTOS],
   precios: new Map(),
-  cortes: [],
+  // Lista de ejemplo de la primera demo (la planilla sólo muestra Picada y Vacíos).
+  cortes: ["Asado", "Nalga", "Cuadril", "Bola de lomo", "Matambre", "Milanesa"],
   stock: [],
   proveedores: [],
   pagosProveedores: [],
