@@ -1,6 +1,10 @@
 # Carnes Rosales — Cuentas corrientes
 
-Clientes, ventas (remitos), pagos, stock, proveedores y usuarios con roles. Next.js + Supabase.
+Clientes, ventas (remitos), pagos y usuarios con roles. Next.js + Supabase.
+
+Esta rama (`main`) es la **primera etapa**. Stock y Proveedores están en la rama `etapa-2`; Avisos,
+Empleados y Gastos, en `etapa-3`. La base ya queda preparada para la segunda etapa (las tablas de
+stock y proveedores se crean con `0003`), así que sumarla después no requiere tocar la base.
 
 ## Correr en local
 

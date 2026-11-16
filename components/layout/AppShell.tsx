@@ -5,21 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { puede, ROL_LABEL, type Rol } from "@/lib/auth/roles";
-import { BellIcon, BoxIcon, CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, IdIcon, MenuIcon, ShieldIcon, TruckIcon, UsersIcon, WalletIcon } from "./icons";
+import { CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, ShieldIcon, UsersIcon } from "./icons";
 
 // Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
 type IconType = (props: { className?: string }) => ReactNode;
-type NavItem = { href: string; label: string; Icon: IconType; soloAdmin?: boolean; /** Etapa posterior a la que pertenece la sección. */ etapa?: 2 | 3 };
+type NavItem = { href: string; label: string; Icon: IconType; soloAdmin?: boolean };
 
 const SECTIONS: NavItem[] = [
   { href: "/", label: "Inicio", Icon: HomeIcon },
   { href: "/clientes", label: "Clientes", Icon: UsersIcon },
   { href: "/pagos", label: "Pagos", Icon: CashIcon },
-  { href: "/stock", label: "Stock", Icon: BoxIcon, etapa: 2 },
-  { href: "/proveedores", label: "Proveedores", Icon: TruckIcon, etapa: 2 },
-  { href: "/avisos", label: "Avisos", Icon: BellIcon, etapa: 3 },
-  { href: "/empleados", label: "Empleados", Icon: IdIcon, etapa: 3 },
-  { href: "/gastos", label: "Gastos", Icon: WalletIcon, etapa: 3 },
   { href: "/usuarios", label: "Usuarios", Icon: ShieldIcon, soloAdmin: true },
 ];
 
@@ -167,17 +162,7 @@ export function AppShell({ email, rol, mock, children }: { email: string; rol: R
             aria-label="Secciones"
             className="flex-1 space-y-1 overflow-y-auto [scrollbar-color:rgba(255,255,255,0.3)_transparent] [scrollbar-width:thin]"
           >
-            {secciones.filter((s) => !s.etapa).map(navLink)}
-
-            {([2, 3] as const).map((etapa) => (
-              <div key={etapa}>
-                <p className={`px-2.5 pb-1 pt-5 text-xs font-semibold uppercase tracking-wide text-white/60 ${colapsado ? "md:hidden" : ""}`}>
-                  {etapa === 2 ? "Segunda etapa" : "Tercera etapa"}
-                </p>
-                {colapsado && <div aria-hidden className="mx-2 my-3 hidden border-t border-white/20 md:block" />}
-                <div className="space-y-1">{secciones.filter((s) => s.etapa === etapa).map(navLink)}</div>
-              </div>
-            ))}
+            {secciones.map(navLink)}
           </nav>
 
           <div
