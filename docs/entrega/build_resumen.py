@@ -28,7 +28,7 @@ OUT = os.path.join(AQUI, "CarnesRosales-resumen-sistema.pdf")
 os.makedirs(TMP, exist_ok=True)
 
 # ── Valores estimados (en pesos argentinos; se cambian acá) ─────────────────
-PRECIO_ETAPA_1 = 600000
+PRECIO_ETAPA_1 = 520000
 MODULOS = [
     {"etapa": 2, "nombre": "Stock de mercadería", "precio": 150000},
     {"etapa": 2, "nombre": "Proveedores y cuentas a pagar", "precio": 150000},
