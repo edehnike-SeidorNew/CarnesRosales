@@ -334,6 +334,22 @@ export async function crearProducto(datos: { nombre: string; categoria: string; 
   });
 }
 
+/** Elimina un producto del catálogo. Sólo el administrador, y sólo si todavía no se usó en ventas ni en stock. */
+export async function eliminarProducto(producto: string): Promise<Resultado> {
+  const nombre = texto(producto, 80);
+  if (!nombre) return error("Falta el producto.");
+  return ejecutar("borrar", async () => {
+    try {
+      await repo().eliminarProducto(nombre);
+    } catch (e) {
+      // El motivo ("ya tiene ventas...") se le muestra al usuario tal cual.
+      if (e instanceof Error && e.message.startsWith("No se puede eliminar")) throw new Aviso(e.message);
+      throw e;
+    }
+    return null;
+  });
+}
+
 /** Agrega uno o varios cortes al catálogo (separados por coma o por renglón). */
 export async function crearCorte(nombres: string): Promise<Resultado> {
   const cortes = [

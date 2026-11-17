@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { crearProducto, guardarProducto } from "@/app/acciones";
+import { crearProducto, eliminarProducto, guardarProducto } from "@/app/acciones";
 import { Campo, Tarjeta, Vacio } from "@/components/clientes/comunes";
 import { useAccion } from "@/components/comun/useAccion";
-import { ChevronRightIcon, PlusIcon, TagIcon } from "@/components/layout/icons";
+import { ChevronRightIcon, PlusIcon, TagIcon, TrashIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
 import { Autocompletar } from "@/components/ui/Autocompletar";
+import { useNotificaciones } from "@/components/ui/Notificaciones";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { Select } from "@/components/ui/Select";
 import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO, pesos } from "@/lib/formato";
@@ -28,6 +29,18 @@ function FilaProducto({ producto, rubros, editable }: { producto: Producto; rubr
   const [categoria, setCategoria] = useState(producto.categoria);
   const [precio, setPrecio] = useState(producto.precio ? aCampo(producto.precio) : "");
   const { pendiente, error, correr } = useAccion();
+  const { confirmar } = useNotificaciones();
+
+  async function eliminar() {
+    const ok = await confirmar({
+      titulo: `¿Eliminar ${producto.nombre}?`,
+      mensaje: "Se borra del catálogo. Si ya tiene ventas o stock cargados, no se puede eliminar.",
+      confirmar: "Eliminar producto",
+      peligro: true,
+    });
+    if (!ok) return;
+    correr(() => eliminarProducto(producto.nombre), undefined, "Producto eliminado");
+  }
 
   const nuevoPrecio = precioDeCampo(precio);
   const cambio = categoria !== producto.categoria || nuevoPrecio !== producto.precio;
@@ -51,7 +64,7 @@ function FilaProducto({ producto, rubros, editable }: { producto: Producto; rubr
         )}
       </td>
       {editable && (
-        <td className={`${TD} w-32 whitespace-nowrap text-right`}>
+        <td className={`${TD} w-44 whitespace-nowrap text-right`}>
           {cambio ? (
             <button
               type="button"
@@ -64,7 +77,17 @@ function FilaProducto({ producto, rubros, editable }: { producto: Producto; rubr
           ) : (
             <span className="text-xs text-slate-400">Sin cambios</span>
           )}
-          {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
+          <button
+            type="button"
+            disabled={pendiente}
+            onClick={eliminar}
+            title={`Eliminar ${producto.nombre}`}
+            aria-label={`Eliminar ${producto.nombre}`}
+            className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white align-middle text-red-700 hover:bg-red-50 disabled:opacity-60"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+          {error && <p className="mt-1 whitespace-normal text-xs text-red-700">{error}</p>}
         </td>
       )}
     </tr>

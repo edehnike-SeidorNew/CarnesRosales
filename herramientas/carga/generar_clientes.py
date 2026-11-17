@@ -261,6 +261,12 @@ update public.perfiles set rol = 'admin', activo = true where lower(email) = {sq
 commit;
 
 -- {'═' * 74}
+-- Numeración: los clientes se cargaron con su número fijo (1 a {len(plan)}). Se avanza el contador para que el
+-- próximo cliente que se cree desde la app reciba el {len(plan) + 1} y no choque con uno existente.
+-- {'═' * 74}
+select setval(pg_get_serial_sequence('public.clientes', 'numero'), (select max(numero) from public.clientes));
+
+-- {'═' * 74}
 -- Resumen final: tienen que ser {len(plan)} clientes y un saldo total de {plata(total_esperado)}.
 -- {'═' * 74}
 select count(*) as clientes, sum(saldo) as saldo_total from public.saldos_clientes;

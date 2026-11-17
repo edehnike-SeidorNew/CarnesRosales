@@ -343,6 +343,23 @@ export const repoSupabase: Repo = {
     comprobar(error);
   },
 
+  async eliminarProducto(nombre) {
+    const db = await createClient();
+    // Se busca por nombre sin crearlo (producto_por_nombre lo crearía si no existiera).
+    const patron = nombre.replace(/[\\%_]/g, "\\$&");
+    const { data: fila, error: errorBuscar } = await db.from("productos").select("id").ilike("nombre", patron).maybeSingle();
+    comprobar(errorBuscar);
+    if (!fila) return; // ya no existe
+    const { data, error } = await db.from("productos").delete().eq("id", fila.id).select("id");
+    if (error) {
+      // 23503: tiene ventas o movimientos de stock asociados (clave foránea).
+      if ((error as { code?: string }).code === "23503")
+        throw new Error("No se puede eliminar: el producto ya tiene ventas o movimientos de stock. Si no lo querés usar más, dejalo sin precio.");
+      throw new Error(error.message);
+    }
+    if (!data?.length) throw new Error("No se pudo eliminar el producto (sin permiso)");
+  },
+
   async registrarPagoProveedor(pago) {
     const db = await createClient();
     const { error } = await db.from("pagos_proveedores").insert({

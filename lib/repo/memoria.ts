@@ -177,6 +177,17 @@ export const repoMemoria: Repo = {
     if (!estado.cortes.some((c) => c.toLowerCase() === corte.toLowerCase())) estado.cortes.push(corte);
   },
 
+  async eliminarProducto(nombre) {
+    const clave = limpio(nombre).toLowerCase();
+    const enVentas = estado.movimientos.some((m) => m.tipo === "venta" && m.items.some((i) => i.detalle.toLowerCase() === clave));
+    const enStock = estado.stock.some((s) => s.producto.toLowerCase() === clave);
+    if (enVentas || enStock)
+      throw new Error("No se puede eliminar: el producto ya tiene ventas o movimientos de stock. Si no lo querés usar más, dejalo sin precio.");
+    estado.cortes = estado.cortes.filter((c) => c.toLowerCase() !== clave);
+    estado.precios.delete(clave);
+    estado.categorias.delete(clave);
+  },
+
   async registrarPagoProveedor(pago) {
     estado.pagosProveedores.push({ ...pago, id: nuevoId("pp"), creadoPor: await quien() });
   },

@@ -253,7 +253,7 @@ for t_, d_ in [
     ("Avisos en pantalla", "Cada acción importante muestra un aviso arriba de todo («Venta registrada», «Pago registrado», «Remito eliminado»…), y los errores también."),
     ("Resumen de cuenta en PDF", "Con los datos del cliente, el saldo anterior, las compras, los pagos y el saldo adeudado, para descargar y enviarle o para imprimir. Respeta el período elegido."),
     ("Quién cargó cada cosa", "Cada movimiento guarda qué usuario lo cargó, y se ve en la columna «Cargó»."),
-    ("Carga inicial desde la planilla", "Se cargan los 94 clientes de la planilla con todo su historial (saldo anterior, ventas, pagos, descuentos y cargos), cotejado hoja por hoja y fila por fila contra el Excel: cada saldo coincide con el de su hoja y con la hoja SALDOS."),
+    ("Carga inicial desde la planilla", "Se cargan los 94 clientes de la planilla con todo su historial (saldo anterior, ventas, pagos, descuentos y cargos), con un cotejo hoja por hoja contra el Excel que se está terminando de revisar."),
     ("Celular, tablet y computadora", "Las pantallas se adaptan al tamaño, y los calendarios y las listas desplegables tienen el mismo estilo del sistema."),
 ]:
     story.append(check(t_, d_))
@@ -277,18 +277,8 @@ story.append(CondPageBreak(70 * mm))
 story += heading("Estado actual")
 story.append(status_line("<b>Las pantallas de la primera etapa están programadas y probadas</b> con los datos reales de la planilla, en modo de demostración."))
 story.append(status_line("La base de datos está diseñada y probada: tablas, permisos por rol y la carga de los <b>94 clientes</b> con su historial completo (813 movimientos), con un control de saldo cliente por cliente."))
-story.append(status_line("Los saldos de los 94 clientes coinciden con la hoja SALDOS de la planilla: <b>total $ 59.312.648</b>."))
-story.append(Spacer(1, 4))
-story.append(callout(
-    "FALTA PARA EMPEZAR A USARLO",
-    "<b>Conectar la base de datos real:</b> crear el proyecto de Supabase, correr los scripts de carga en orden y publicar el sistema con sus claves. "
-    "<b>Completar los datos de la empresa</b> que salen en el remito (dirección, teléfono, C.U.I.T.): lo que falta no se imprime. "
-    "<b>Medio de pago de los pagos anteriores:</b> la planilla no lo trae, así que quedan «sin especificar» y se completan después. "
-    "<b>Clasificar los productos nuevos:</b> los que se escriben a mano en una venta aparecen sin rubro hasta que el administrador se lo asigne.",
-    AZUL_HEX))
+story.append(status_line("Se están terminando de cotejar los saldos de los 94 clientes contra la planilla."))
 story.append(Spacer(1, 6))
-story.append(Paragraph(
-    "Los servicios de terceros que usa el sistema (base de datos y publicación online) tienen planes gratuitos que alcanzan para empezar.", small))
 
 story.append(CondPageBreak(75 * mm))  # el bloque de valor no se parte entre dos páginas
 story += heading("Valor estimado de la primera etapa")
@@ -297,7 +287,7 @@ story.append(Spacer(1, 4))
 story.append(Paragraph(
     "Incluye el diseño y el desarrollo completo de lo que se describe en este resumen: ingreso con usuarios y roles, clientes y cuentas corrientes, "
     "ventas con buscador de productos, pagos, descuentos y cargos, remitos con PDF e impresión, productos con rubros y precios de lista, tablero de inicio, "
-    "resumen de cuenta en PDF, y la carga y el cotejo de los 94 clientes de la planilla, con sus saldos verificados.", body))
+    "resumen de cuenta en PDF, y la carga de los 94 clientes de la planilla, con el cotejo de sus saldos.", body))
 story.append(Spacer(1, 3))
 story.append(Paragraph("Valor estimado, en pesos argentinos. No incluye los servicios de terceros (base de datos y publicación), que tienen planes gratuitos para empezar.", small))
 
@@ -305,11 +295,11 @@ story.append(CondPageBreak(95 * mm))
 story += heading("Próximas etapas")
 story.append(Paragraph(
     "Lo que sigue queda fuera de la primera etapa y se puede contratar por separado. La segunda etapa completa la operación con la mercadería y los proveedores; "
-    "la tercera suma avisos, personal y gastos. En la segunda ya hay un adelanto armado.", body))
+    "la tercera suma avisos, personal y gastos.", body))
 story.append(Spacer(1, 8))
 
 story.append(modulo(
-    "Stock de mercadería", "SEGUNDA ETAPA · CON ADELANTO",
+    "Stock de mercadería", "SEGUNDA ETAPA",
     "Saber cuántos kilos hay de cada corte sin contarlos a mano todos los días. La lista de precios por producto ya está en la primera etapa.",
     [
         "El stock entra con cada compra de mercadería y sale solo con los kilos de cada venta.",
@@ -319,7 +309,7 @@ story.append(modulo(
         "Tarjetas de stock por producto en el Inicio.",
     ], valor=valor_de("Stock de mercadería")))
 story.append(modulo(
-    "Proveedores y cuentas a pagar", "SEGUNDA ETAPA · CON ADELANTO",
+    "Proveedores y cuentas a pagar", "SEGUNDA ETAPA",
     "Lo mismo que la cuenta corriente de los clientes, pero al revés: a quién se le compra y cuánto se le debe.",
     [
         "Cada compra de mercadería queda asociada a su proveedor, con los kilos y el costo.",

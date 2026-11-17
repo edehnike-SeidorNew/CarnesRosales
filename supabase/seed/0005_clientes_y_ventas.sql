@@ -6551,6 +6551,12 @@ update public.perfiles set rol = 'admin', activo = true where lower(email) = 're
 commit;
 
 -- ══════════════════════════════════════════════════════════════════════════
+-- Numeración: los clientes se cargaron con su número fijo (1 a 94). Se avanza el contador para que el
+-- próximo cliente que se cree desde la app reciba el 95 y no choque con uno existente.
+-- ════════════════════════════════════════════════════════════════════════════
+select setval(pg_get_serial_sequence('public.clientes', 'numero'), (select max(numero) from public.clientes));
+
+-- ════════════════════════════════════════════════════════════════════════════
 -- Resumen final: tienen que ser 94 clientes y un saldo total de 59312648.00.
 -- ══════════════════════════════════════════════════════════════════════════
 select count(*) as clientes, sum(saldo) as saldo_total from public.saldos_clientes;

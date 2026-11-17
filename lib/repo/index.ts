@@ -34,6 +34,8 @@ export interface Repo {
   fijarCategoria(producto: string, categoria: string): Promise<void>;
   /** Agrega un corte al catálogo (si ya existe, no hace nada). */
   crearCorte(nombre: string): Promise<void>;
+  /** Borra un producto del catálogo. Si ya tiene ventas o movimientos de stock, no se puede y avisa. */
+  eliminarProducto(nombre: string): Promise<void>;
 
   registrarPagoProveedor(pago: NuevoPagoProveedor): Promise<void>;
   eliminarPagoProveedor(id: string): Promise<void>;
