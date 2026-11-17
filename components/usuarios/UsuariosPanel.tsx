@@ -28,7 +28,7 @@ function FormInvitar({ onListo }: { onListo: () => void }) {
 
   function enviar(e: FormEvent) {
     e.preventDefault();
-    correr(() => invitarUsuario(email, rol), onListo);
+    correr(() => invitarUsuario(email, rol), onListo, "Usuario invitado");
   }
 
   return (
@@ -115,7 +115,7 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
                             {soyYo ? (
                               <span className="text-slate-800">{ROL_LABEL[m.rol]}</span>
                             ) : (
-                              <Select value={m.rol} onChange={(nuevo) => correr(() => cambiarRolUsuario(m.id, nuevo))} opciones={OPCIONES_ROL} ariaLabel={`Rol de ${m.email}`} disabled={pendiente} className="!w-44" />
+                              <Select value={m.rol} onChange={(nuevo) => correr(() => cambiarRolUsuario(m.id, nuevo), undefined, "Rol actualizado")} opciones={OPCIONES_ROL} ariaLabel={`Rol de ${m.email}`} disabled={pendiente} className="!w-44" />
                             )}
                           </td>
                           <td className={TD}>
@@ -132,7 +132,7 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
                               <button
                                 type="button"
                                 disabled={pendiente}
-                                onClick={() => correr(() => cambiarActivoUsuario(m.id, !m.activo))}
+                                onClick={() => correr(() => cambiarActivoUsuario(m.id, !m.activo), undefined, m.activo ? "Usuario desactivado" : "Usuario activado")}
                                 className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}
                               >
                                 {m.activo ? "Desactivar" : "Dar acceso"}
@@ -162,7 +162,7 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
                       <button
                         type="button"
                         disabled={pendiente}
-                        onClick={() => correr(() => cancelarInvitacion(i.id))}
+                        onClick={() => correr(() => cancelarInvitacion(i.id), undefined, "Invitación cancelada")}
                         aria-label={`Cancelar invitación de ${i.email}`}
                         className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-700"
                       >

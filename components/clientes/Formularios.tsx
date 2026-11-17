@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { actualizarPago, actualizarVenta, registrarPago, registrarVenta } from "@/app/acciones";
+import { actualizarCargo, actualizarDescuento, actualizarPago, actualizarVenta, registrarCargo, registrarDescuento, registrarPago, registrarVenta } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
-import { Autocompletar } from "@/components/ui/Autocompletar";
+import { SelectorProducto } from "@/components/ui/SelectorProducto";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { DateField } from "@/components/ui/DateField";
 import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO, hoyISO, kilos as formatoKilos, pesos } from "@/lib/formato";
 import { MEDIOS_PAGO, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 import { Campo, SelectorMedio } from "./comunes";
 
-type Renglon = { detalle: string; kilos: string; precio: string };
+/** `libre`: el producto se escribe a mano (personalizado), sin lista ni precio sugerido. */
+type Renglon = { detalle: string; kilos: string; precio: string; libre?: boolean };
 const RENGLON_VACIO: Renglon = { detalle: "", kilos: "", precio: "" };
 
 const numero = aNumero;
@@ -44,12 +45,23 @@ export function FormVenta({
       rs.map((r, i) => {
         if (i !== indice) return r;
         const nuevo = { ...r, [campo]: valor };
-        // Al elegir un corte con precio de lista, completa el precio si estaba vacío.
-        const lista = campo === "detalle" ? producto(valor)?.precio : null;
-        if (lista && !r.precio) nuevo.precio = aCampo(lista);
+        // En un producto personalizado no hay precio de lista que sugerir.
+        if (r.libre) return nuevo;
+        // Al elegir un producto con precio de lista, lo sugiere. Si el precio actual era el de lista del producto
+        // anterior (o estaba vacío) lo reemplaza; si la persona ya escribió otro, se respeta.
+        if (campo === "detalle") {
+          const lista = producto(valor)?.precio;
+          const anterior = producto(r.detalle)?.precio;
+          if (lista && (!r.precio || (anterior && r.precio === aCampo(anterior)))) nuevo.precio = aCampo(lista);
+        }
         return nuevo;
       }),
     );
+  }
+
+  /** Cambia un renglón entre "elegir de la lista" y "escribir un producto personalizado". */
+  function alternarLibre(indice: number) {
+    setRenglones((rs) => rs.map((r, i) => (i === indice ? { ...r, libre: !r.libre } : r)));
   }
 
   function enviar(e: FormEvent) {
@@ -61,7 +73,7 @@ export function FormVenta({
     if (items.length === 0) return setError("Cargá al menos un producto.");
     if (items.some((i) => !i.detalle || !(i.kilos > 0) || !(i.precio > 0))) return setError("Cada producto necesita detalle, kilos y precio.");
     const datos = { fecha, comprobante, items };
-    correr(() => (venta ? actualizarVenta(venta.id, datos) : registrarVenta(clienteId, datos)), onListo);
+    correr(() => (venta ? actualizarVenta(venta.id, datos) : registrarVenta(clienteId, datos)), onListo, venta ? "Venta corregida" : "Venta registrada");
   }
 
   return (
@@ -86,14 +98,26 @@ export function FormVenta({
           return (
             <div key={i}>
               <div className="grid grid-cols-2 items-end gap-3 sm:grid-cols-[1fr_7rem_9rem_9rem_2.5rem]">
-                <Campo label="Producto" className="col-span-2 sm:col-span-1">
-                  <Autocompletar
-                    value={r.detalle}
-                    onChange={(valor) => cambiar(i, "detalle", valor)}
-                    sugerencias={stock.map((p) => p.nombre)}
-                    placeholder="Elegí uno o escribí uno nuevo"
-                    ariaLabel="Producto"
-                  />
+                <Campo label={r.libre ? "Producto personalizado" : "Producto"} className="col-span-2 sm:col-span-1">
+                  {r.libre ? (
+                    <input
+                      className={CAMPO}
+                      value={r.detalle}
+                      onChange={(e) => cambiar(i, "detalle", e.target.value)}
+                      placeholder="Escribí el nombre del producto"
+                      maxLength={80}
+                      aria-label="Producto personalizado"
+                      autoFocus={!r.detalle}
+                    />
+                  ) : (
+                    <SelectorProducto
+                      value={r.detalle}
+                      onChange={(valor) => cambiar(i, "detalle", valor)}
+                      productos={stock.map((p) => ({ nombre: p.nombre, categoria: p.categoria, precio: p.precio }))}
+                      placeholder="Elegí o buscá un producto"
+                      ariaLabel="Producto"
+                    />
+                  )}
                 </Campo>
                 <Campo label="Kilos">
                   <CampoNumero value={r.kilos} onChange={(valor) => cambiar(i, "kilos", valor)} decimales={3} />
@@ -115,6 +139,20 @@ export function FormVenta({
                   <TrashIcon className="h-5 w-5" />
                 </button>
               </div>
+              <button type="button" onClick={() => alternarLibre(i)} className="mt-1 text-xs font-semibold text-brand hover:underline">
+                {r.libre ? "Elegir de la lista" : "Escribir otro producto"}
+              </button>
+              {r.libre && (
+                <p className="mt-1 text-xs text-slate-500">Se guarda como producto nuevo con el precio que pongas acá; el rubro y el precio de lista los define el administrador en Productos.</p>
+              )}
+              {p?.precio && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Precio de lista: {pesos(p.precio)} por kilo
+                  {numero(r.precio) > 0 && Math.abs(numero(r.precio) - p.precio) > 0.004 && (
+                    <span className="font-semibold text-amber-700"> · estás usando otro precio ({pesos(numero(r.precio))}); se guarda así en esta venta</span>
+                  )}
+                </p>
+              )}
               {disponible !== null && (
                 <p className={`mt-1 text-xs ${falta ? "font-semibold text-amber-700" : "text-slate-500"}`}>
                   Stock disponible: {formatoKilos(disponible)} kg
@@ -126,14 +164,24 @@ export function FormVenta({
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={() => setRenglones((rs) => [...rs, RENGLON_VACIO])}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft"
-      >
-        <PlusIcon className="h-4 w-4" />
-        Agregar producto
-      </button>
+      <div className="mt-3 flex flex-wrap gap-x-2 gap-y-1">
+        <button
+          type="button"
+          onClick={() => setRenglones((rs) => [...rs, RENGLON_VACIO])}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Agregar producto
+        </button>
+        <button
+          type="button"
+          onClick={() => setRenglones((rs) => [...rs, { ...RENGLON_VACIO, libre: true }])}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Agregar producto personalizado
+        </button>
+      </div>
 
       <div className="mt-5 flex items-center justify-between rounded-xl bg-brand-soft px-4 py-3">
         <span className="text-sm font-semibold text-brand">Total compra</span>
@@ -171,7 +219,7 @@ export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: n
     if (!fecha) return setError("Elegí la fecha.");
     if (!(monto > 0)) return setError("Ingresá el importe del pago.");
     const datos = { fecha, comprobante, importe: monto, medioPago };
-    correr(() => (pago ? actualizarPago(pago.id, datos) : registrarPago(clienteId, datos)), onListo);
+    correr(() => (pago ? actualizarPago(pago.id, datos) : registrarPago(clienteId, datos)), onListo, pago ? "Pago corregido" : "Pago registrado");
   }
 
   return (
@@ -215,4 +263,103 @@ export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: n
       </div>
     </form>
   );
+}
+
+type Ajuste = Extract<Movimiento, { tipo: "descuento" | "cargo" }>;
+
+/**
+ * Descuento (resta del saldo, pero no es plata cobrada: retiros, comida...) o cargo (suma al saldo, pero no es una venta de
+ * productos: un préstamo, un ajuste...). Comparten pantalla. Con `ajuste`, lo corrige.
+ */
+function FormAjuste({ tipo, clienteId, saldo, ajuste, onListo }: Props & { tipo: "descuento" | "cargo"; saldo: number; ajuste?: Ajuste }) {
+  const esCargo = tipo === "cargo";
+  const [fecha, setFecha] = useState(ajuste?.fecha ?? hoyISO);
+  const [comprobante, setComprobante] = useState(ajuste?.comprobante ?? "");
+  const [importe, setImporte] = useState(ajuste ? aCampo(ajuste.importe) : "");
+  const [nota, setNota] = useState(ajuste?.nota ?? "");
+  const { pendiente, error, setError, correr } = useAccion();
+
+  const monto = numero(importe) || 0;
+  const signo = esCargo ? 1 : -1;
+  // Al corregir, el saldo actual ya incluye este movimiento.
+  const saldoSinEste = saldo - (ajuste ? signo * ajuste.importe : 0);
+  const que = esCargo ? "cargo" : "descuento";
+
+  function enviar(e: FormEvent) {
+    e.preventDefault();
+    if (!fecha) return setError("Elegí la fecha.");
+    if (!(monto > 0)) return setError(`Ingresá el importe del ${que}.`);
+    if (!nota.trim()) return setError(esCargo ? "Contá de qué es (por ejemplo: préstamo)." : "Contá de qué es (por ejemplo: retiro de asado).");
+    const datos = { fecha, comprobante, importe: monto, nota };
+    const accion = ajuste ? (esCargo ? actualizarCargo : actualizarDescuento)(ajuste.id, datos) : (esCargo ? registrarCargo : registrarDescuento)(clienteId, datos);
+    correr(() => accion, onListo, `${esCargo ? "Cargo" : "Descuento"} ${ajuste ? "corregido" : "registrado"}`);
+  }
+
+  return (
+    <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
+      <p className="mb-4 text-sm text-slate-600">
+        {esCargo ? (
+          <>
+            Suma al saldo del cliente, pero <strong>no es una venta</strong> (no cuenta en lo vendido ni en los kilos). Sirve para préstamos, ajustes a favor, etc.
+          </>
+        ) : (
+          <>
+            Resta del saldo del cliente, pero <strong>no se cuenta como plata cobrada</strong>. Sirve para descuentos, retiros de mercadería, comida, etc.
+          </>
+        )}
+      </p>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Campo label="Fecha">
+          <DateField value={fecha} onChange={setFecha} />
+        </Campo>
+        <Campo label="N° de comprobante">
+          <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} inputMode="numeric" />
+        </Campo>
+        <Campo label="Importe">
+          <CampoNumero value={importe} onChange={setImporte} autoFocus />
+        </Campo>
+      </div>
+      <div className="mt-4">
+        <Campo label="Concepto">
+          <input
+            className={CAMPO}
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder={esCargo ? "Préstamo, ajuste, deuda anterior..." : "Retiro de asado, descuento, comida..."}
+            maxLength={200}
+          />
+        </Campo>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl bg-slate-100 px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{ajuste ? `Saldo sin este ${que}` : "Saldo actual"}</p>
+          <p className="text-lg font-bold tabular-nums text-slate-900">{pesos(saldoSinEste)}</p>
+        </div>
+        <div className="rounded-xl bg-brand-soft px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-brand">Saldo después del {que}</p>
+          <p className="text-lg font-bold tabular-nums text-brand">{pesos(saldoSinEste + signo * monto)}</p>
+        </div>
+      </div>
+
+      {error && <p className="mt-4 text-sm text-red-700">{error}</p>}
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        <button type="submit" disabled={pendiente} className={`${BOTON} disabled:opacity-60`}>
+          {pendiente ? "Guardando..." : ajuste ? "Guardar cambios" : `Guardar ${que}`}
+        </button>
+        <button type="button" onClick={onListo} className={BOTON_SECUNDARIO}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function FormDescuento({ clienteId, saldo, descuento, onListo }: Props & { saldo: number; descuento?: Extract<Movimiento, { tipo: "descuento" }> }) {
+  return <FormAjuste tipo="descuento" clienteId={clienteId} saldo={saldo} ajuste={descuento} onListo={onListo} />;
+}
+
+export function FormCargo({ clienteId, saldo, cargo, onListo }: Props & { saldo: number; cargo?: Extract<Movimiento, { tipo: "cargo" }> }) {
+  return <FormAjuste tipo="cargo" clienteId={clienteId} saldo={saldo} ajuste={cargo} onListo={onListo} />;
 }

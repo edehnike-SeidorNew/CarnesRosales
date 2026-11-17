@@ -1,12 +1,14 @@
 """
-PDF de entrega de Carnes Rosales: resumen del sistema (qué hace cada pantalla, funcionalidades,
-estado y próximas etapas). Basado en la plantilla del resumen de EzMel, con los colores de Carnes Rosales.
+PDF de entrega de Carnes Rosales: resumen del sistema (qué hace cada pantalla, funcionalidades, estado,
+valor estimado de la primera etapa y qué queda para la segunda y la tercera). Basado en la plantilla del
+resumen de EzMel, con los colores de Carnes Rosales.
 
 Uso:
   pip install reportlab pillow
   python build_resumen.py
 
 Las capturas están en ./capturas (se sacan del sistema en modo demo).
+Los valores se cambian acá abajo: PRECIO_ETAPA_1 y la lista MODULOS.
 """
 import os
 from reportlab.lib.pagesizes import A4
@@ -24,6 +26,25 @@ CAPTURAS = os.path.join(AQUI, "capturas")
 TMP = os.path.join(AQUI, "_tmp")
 OUT = os.path.join(AQUI, "CarnesRosales-resumen-sistema.pdf")
 os.makedirs(TMP, exist_ok=True)
+
+# ── Valores estimados (en pesos argentinos; se cambian acá) ─────────────────
+PRECIO_ETAPA_1 = 600000
+MODULOS = [
+    {"etapa": 2, "nombre": "Stock de mercadería", "precio": 150000},
+    {"etapa": 2, "nombre": "Proveedores y cuentas a pagar", "precio": 150000},
+    {"etapa": 3, "nombre": "Avisos de cobro y de pago", "precio": 120000},
+    {"etapa": 3, "nombre": "Planilla de empleados", "precio": 80000},
+    {"etapa": 3, "nombre": "Gastos de la empresa", "precio": 90000},
+]
+
+
+def pesos_ar(n):
+    return "$ " + f"{n:,.0f}".replace(",", ".") + " ARS"
+
+
+def valor_de(nombre):
+    return next(m["precio"] for m in MODULOS if m["nombre"] == nombre)
+
 
 NAVY = colors.HexColor("#1c1d4a")      # índigo oscuro (marca)
 BLUE = colors.HexColor("#2b2d6e")      # color principal
@@ -49,6 +70,7 @@ caption = ParagraphStyle("caption", fontName="Helvetica-Oblique", fontSize=8.4, 
 item = ParagraphStyle("item", parent=body, leftIndent=11, bulletIndent=0)
 check_t = ParagraphStyle("check_t", fontName="Helvetica-Bold", fontSize=10, textColor=INK, leading=13)
 check_d = ParagraphStyle("check_d", fontName="Helvetica", fontSize=9, textColor=MUTED, leading=12.5)
+precio_grande = ParagraphStyle("precio_grande", fontName="Helvetica-Bold", fontSize=26, textColor=BLUE, leading=31)
 
 
 def tick():
@@ -94,11 +116,12 @@ def callout(titulo, texto, color):
     return t
 
 
-def modulo(nombre, etiqueta, resumen, funciones):
-    """Bloque de una sección futura: cabecera con nombre y etiqueta, resumen y lista de funciones."""
+def modulo(nombre, etiqueta, resumen, funciones, valor=None):
+    """Bloque de una sección futura: cabecera con nombre, etapa y valor, resumen y lista de funciones."""
+    derecha = etiqueta + (f"  ·  {pesos_ar(valor)}" if valor else "")
     cab = Table([[Paragraph(nombre, ParagraphStyle("mn", fontName="Helvetica-Bold", fontSize=10.5, textColor=NAVY, leading=14)),
-                  Paragraph(etiqueta, ParagraphStyle("mp", fontName="Helvetica-Bold", fontSize=8.6, textColor=BLUE, leading=14, alignment=2))]],
-                colWidths=[CONTENT_W - 52 * mm, 52 * mm])
+                  Paragraph(derecha, ParagraphStyle("mp", fontName="Helvetica-Bold", fontSize=8.6, textColor=BLUE, leading=14, alignment=2))]],
+                colWidths=[CONTENT_W - 78 * mm, 78 * mm])
     cab.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), SOFT), ("LINEBEFORE", (0, 0), (0, -1), 3, BLUE),
                              ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
                              ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
@@ -139,8 +162,8 @@ def figure(path, width_mm, text):
 
 def header_block():
     inner = [Spacer(1, 14), Paragraph("RESUMEN DEL SISTEMA · PRIMERA ETAPA", kicker), Spacer(1, 6),
-             Paragraph("Carnes Rosales — Clientes, cuentas corrientes, ventas y pagos", title), Spacer(1, 8),
-             Paragraph("Qué hace cada pantalla, cómo se trabaja, en qué estado está y qué queda para las próximas etapas.", sub),
+             Paragraph("Carnes Rosales — Clientes, cuentas corrientes, ventas, remitos y pagos", title), Spacer(1, 8),
+             Paragraph("Qué hace cada pantalla, cómo se trabaja, en qué estado está, cuánto vale la primera etapa y qué queda para la segunda y la tercera.", sub),
              Spacer(1, 16)]
     t = Table([[inner]], colWidths=[CONTENT_W])
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), NAVY), ("LEFTPADDING", (0, 0), (-1, -1), 18),
@@ -164,16 +187,16 @@ def footer(canvas, doc):
 IMG = {
     "login": prepare("01-login.png"),
     "inicio": prepare("02-inicio.png"),
-    "clientes": prepare("03-clientes.png", (0, 0, 2160, 1000)),
+    "clientes": prepare("03-clientes.png"),
     "filtros": prepare("04-filtros.png"),
     "cuenta": prepare("05-cuenta-corriente.png"),
-    "venta": prepare("06-registrar-venta.png", (0, 0, 2160, 1240)),
+    "venta": prepare("06-registrar-venta.png"),
     "pago": prepare("07-registrar-pago.png"),
-    "pagos": prepare("08-pagos.png", (0, 0, 2160, 1000)),
-    "usuarios": prepare("09-usuarios.png", (0, 0, 2160, 1000)),
-    "invitar": prepare("10-invitar.png", (0, 0, 2160, 1000)),
-    "stock": prepare("11-stock.png", (0, 0, 2160, 900)),
-    "proveedores": prepare("12-proveedores.png", (0, 0, 2160, 900)),
+    "pagos": prepare("08-pagos.png"),
+    "remitos": prepare("09-remitos.png", (0, 0, 2160, 1000)),
+    "remito_pdf": prepare("12-remito-pdf.png"),
+    "productos": prepare("10-productos.png"),
+    "usuarios": prepare("11-usuarios.png", (0, 0, 2160, 1000)),
 }
 
 story = [header_block(), Spacer(1, 6)]
@@ -187,10 +210,12 @@ story += heading("Cómo se trabaja: de la venta al cobro")
 for label, text in [
     ("1. Se ingresa con usuario y contraseña", "cada persona tiene su cuenta y su rol (administrador, vendedor o solo lectura)."),
     ("2. Se busca al cliente", "en <b>Clientes</b>, con el buscador o con los filtros por localidad, saldo y último pago. Al tocarlo se abre su cuenta corriente."),
-    ("3. Se registra la venta", "con la fecha, el número de remito y los productos: kilos y precio por kilo de cada uno. El total se calcula solo y se suma al saldo del cliente."),
-    ("4. Se registra el pago", "con la fecha, el número de recibo, el importe y el medio de pago (efectivo, cheque o billetera virtual). Antes de guardar se ve cómo queda el saldo."),
-    ("5. Se consulta", "el <b>Inicio</b> muestra lo vendido, los kilos por corte, lo cobrado y lo que falta cobrar. En <b>Pagos</b> están todos los cobros juntos, para cerrar la caja."),
-    ("6. Se le manda el resumen al cliente", "desde su cuenta corriente se descarga un <b>PDF</b> con sus compras, sus pagos y el saldo adeudado."),
+    ("3. Se registra la venta", "con la fecha, el número de remito y los productos. El producto se busca por nombre o por rubro (o se escribe uno personalizado) y el precio de la lista se completa solo, aunque se puede cambiar en esa venta. El total se calcula y se suma al saldo del cliente."),
+    ("4. Se entrega el remito", "cada venta queda como un <b>remito</b>: se ve en pantalla, se imprime o se descarga en PDF con el logo y los datos del cliente, listo para firmar."),
+    ("5. Se registra el pago", "con la fecha, el número de recibo, el importe y el medio de pago (efectivo, cheque o billetera virtual). Antes de guardar se ve cómo queda el saldo."),
+    ("6. Descuentos y cargos", "lo que resta del saldo sin ser plata cobrada (un descuento, un retiro de mercadería) y lo que suma sin ser una venta (un préstamo) se cargan aparte, para no mezclarlos con lo cobrado ni con lo vendido."),
+    ("7. Se consulta", "el <b>Inicio</b> muestra lo vendido, los kilos por producto, lo cobrado y lo que falta cobrar. En <b>Pagos</b> están todos los cobros juntos, para cerrar la caja."),
+    ("8. Se le manda el resumen al cliente", "desde su cuenta corriente se descarga un <b>PDF</b> con sus compras, sus pagos y el saldo adeudado."),
 ]:
     story.append(bullet(label, text))
     story.append(Spacer(1, 3.5))
@@ -199,12 +224,14 @@ story += heading("Pantallas del sistema")
 story.append(Paragraph("Menú a la izquierda (se puede plegar para ganar lugar) y, en cada pantalla, un panel de opciones a la derecha. En el celular el menú es desplegable.", body))
 story.append(Spacer(1, 6))
 for label, text in [
-    ("Ingreso", "pantalla de acceso con email y contraseña. Incluye «¿Olvidaste tu contraseña?» y «Creá tu cuenta» para quienes fueron invitados."),
-    ("Inicio", "tablero del negocio. Arriba se elige el período (semana, mes, trimestre, semestre o año) y las tarjetas muestran el total vendido, los kilos vendidos, lo cobrado y el total a cobrar. Debajo, una tarjeta por cada producto de la lista de precios, agrupadas por rubro (vacuno, cerdo, pollo y embutidos), con sus kilos, el importe y el precio promedio. A la derecha, los cobros por medio de pago y los clientes con mayor saldo."),
-    ("Clientes", "lista de clientes con número, nombre de fantasía, titular, localidad, último pago y saldo adeudado. Tiene buscador y un botón de filtros (localidad, saldo, último pago y orden). Desde el panel derecho se da de alta un cliente nuevo, con su saldo anterior si ya debía algo."),
-    ("Cuenta corriente del cliente", "se abre al tocar un cliente. Arriba, cuatro tarjetas: saldo adeudado, compras, pagado y último pago. Debajo, el <b>historial de movimientos</b> con las mismas columnas de la planilla (fecha, comprobante, concepto, medio de pago, kilos, precio por kilo, subtotal, total compra, pago entrante y saldo adeudado), filtros por período y los botones <b>Imprimir</b> y <b>Descargar PDF</b>. En el panel derecho: registrar venta, registrar pago, editar los datos del cliente y ver sus datos."),
-    ("Registrar venta", "formulario del remito: fecha, número y uno o más productos. El producto se elige de la lista o se escribe uno nuevo."),
+    ("Ingreso", "pantalla de acceso con el logo y una foto de la marca. Email y contraseña, «¿Olvidaste tu contraseña?» y «Crear cuenta» para quienes fueron invitados."),
+    ("Inicio", "tablero del negocio. Arriba se elige el período (semana, mes, trimestre, semestre o año) y las tarjetas muestran el total vendido, los kilos vendidos, lo cobrado y el total a cobrar. Debajo, los kilos vendidos por producto, agrupados por rubro (vacuno, cerdo, pollo, embutidos): cada rubro muestra los 4 productos más vendidos y un «Mostrar más», y se puede cerrar. A la derecha, los cobros por medio de pago y los clientes con mayor saldo."),
+    ("Clientes", "lista de clientes con número, nombre, titular, localidad, último pago y saldo adeudado. Tiene buscador y un botón de filtros (localidad, saldo, último pago y orden). Desde el panel derecho se da de alta un cliente nuevo, con su saldo anterior si ya debía algo."),
+    ("Cuenta corriente del cliente", "se abre al tocar un cliente. Arriba, cuatro tarjetas: saldo adeudado, compras, pagado y último pago. Debajo, el <b>historial de movimientos</b> con las columnas de la planilla (fecha, comprobante, concepto, medio de pago, kilos, precio por kilo, subtotal, total compra, pago entrante y saldo adeudado), filtros por período y los botones <b>Imprimir</b> y <b>Descargar PDF</b>. En el panel derecho: registrar venta, pago, descuento o cargo, editar los datos del cliente y ver sus datos."),
+    ("Registrar venta", "formulario del remito: fecha, número y uno o más productos. El producto se elige con un <b>buscador</b> (por nombre o por rubro, con filtros por rubro y el precio de lista a la vista), o con «Agregar producto personalizado» si no está en la lista."),
     ("Registrar pago", "formulario del recibo: fecha, número, importe y medio de pago. Muestra el saldo actual y el saldo después del pago."),
+    ("Remitos", "todas las ventas como remitos, con filtro por período y buscador por cliente, número o producto. De cada uno se puede ver, imprimir, descargar en PDF y eliminar. «Nuevo remito» abre la cuenta del cliente elegido con la venta lista para cargar."),
+    ("Productos", "lista de productos con su rubro y su precio por kilo. El administrador los edita y crea productos nuevos; el precio de lista es el que se sugiere al vender. Los demás usuarios la ven pero no la cambian."),
     ("Pagos", "todos los pagos recibidos, de todos los clientes, en una sola lista. Se filtra por período, por medio de pago y por cliente o número de recibo, con el total cobrado y el total de cada medio."),
     ("Usuarios", "solo para el administrador: lista de usuarios con su rol y su estado, cambio de rol, dar o quitar el acceso, e invitar a una persona nueva."),
 ]:
@@ -213,65 +240,84 @@ for label, text in [
 
 story += heading("Funcionalidades")
 for t_, d_ in [
-    ("Ingreso seguro con usuarios y roles", "Email y contraseña, con recuperación de contraseña por email. Tres roles: <b>administrador</b> (hace todo, incluido borrar y administrar usuarios), <b>vendedor</b> (carga y corrige clientes, ventas y pagos; no borra) y <b>solo lectura</b> (consulta). Los permisos se aplican en las pantallas, en cada operación y en la propia base de datos."),
+    ("Ingreso seguro con usuarios y roles", "Email y contraseña, con recuperación de contraseña por email. Tres roles: <b>administrador</b> (hace todo, incluido borrar, administrar usuarios y cambiar rubros y precios), <b>vendedor</b> (carga y corrige clientes, ventas y pagos; no borra) y <b>solo lectura</b> (consulta). Los permisos se aplican en las pantallas, en cada operación y en la propia base de datos."),
     ("Alta de usuarios por invitación", "El administrador invita con el email y el rol; la persona se registra con ese email y entra directamente con su rol. Quien se registra sin invitación queda sin acceso hasta que el administrador lo habilite."),
-    ("Clientes", "Alta, edición y baja con los datos de la planilla: nombre de fantasía, titular, dirección, localidad, C.U.I.T., contacto y observaciones. La numeración sigue sola, y el saldo anterior se puede corregir."),
-    ("Filtros de clientes", "Por localidad (varias a la vez), por saldo (con saldo pendiente o al día) y por último pago (pagó en los últimos 7 o 30 días, no paga hace más de 30 días, o sin pagos). También se ordena por mayor saldo o por último pago."),
-    ("Ventas con varios productos", "Un remito puede tener varios cortes, cada uno con sus kilos y su precio por kilo. El subtotal de cada renglón y el total se calculan solos."),
+    ("Clientes y filtros", "Alta, edición y baja con los datos de la planilla (nombre, titular, dirección, localidad, C.U.I.T., contacto y observaciones). Filtros por localidad, saldo y último pago, y orden por mayor saldo o por último pago."),
+    ("Ventas con varios productos y buscador", "Un remito puede tener varios productos, cada uno con sus kilos y su precio por kilo. El producto se busca por nombre o por rubro; si no está, se escribe uno personalizado. El precio de lista se sugiere solo y se puede cambiar en esa venta (el sistema avisa cuando se usa otro precio)."),
+    ("Remitos en PDF", "Cada venta tiene su remito: vista en pantalla idéntica al PDF, con el logo, los datos del cliente, los renglones, el total en letras y el lugar para la firma. Se imprime o se descarga, y se puede eliminar con confirmación."),
+    ("Productos, rubros y precios de lista", "Cada producto tiene su rubro y su precio por kilo, que el administrador cambia desde la pantalla Productos. Con eso se agrupa el tablero de Inicio y se completa el precio al vender."),
     ("Pagos con medio de pago", "Cada pago registra si fue en efectivo, con cheque o por billetera virtual, y se ve en el historial del cliente y en la pantalla de Pagos."),
-    ("Saldo siempre calculado", "El saldo no se escribe a mano: sale de sumar el saldo anterior y las ventas, y restar los pagos. Si se corrige o se elimina un movimiento, el saldo se recalcula solo."),
-    ("Corregir y eliminar", "Las ventas y los pagos se pueden corregir (fecha, comprobante, productos, importe, medio de pago). Eliminar un movimiento queda reservado al administrador."),
-    ("Resumen de cuenta en PDF", "Con los datos del cliente, el saldo anterior, las compras, los pagos y el saldo adeudado, para descargar y enviarle o para imprimir. Respeta el período elegido: si se elige la semana, trae solo los movimientos de esa semana."),
+    ("Descuentos y cargos", "Los descuentos y retiros restan del saldo sin contar como plata cobrada; los cargos (por ejemplo, un préstamo) suman al saldo sin contar como venta ni como kilos. Así el Inicio y los totales de Pagos no se distorsionan."),
+    ("Saldo siempre calculado", "El saldo no se escribe a mano: sale de sumar el saldo anterior, las ventas y los cargos, y restar los pagos y los descuentos. Si se corrige o se elimina un movimiento, el saldo se recalcula solo."),
+    ("Corregir y eliminar con confirmación", "Las ventas, los pagos, los descuentos y los cargos se pueden corregir. Eliminar queda reservado al administrador y siempre pide confirmación en un cuadro propio, con el logo, antes de borrar."),
+    ("Avisos en pantalla", "Cada acción importante muestra un aviso arriba de todo («Venta registrada», «Pago registrado», «Remito eliminado»…), y los errores también."),
+    ("Resumen de cuenta en PDF", "Con los datos del cliente, el saldo anterior, las compras, los pagos y el saldo adeudado, para descargar y enviarle o para imprimir. Respeta el período elegido."),
     ("Quién cargó cada cosa", "Cada movimiento guarda qué usuario lo cargó, y se ve en la columna «Cargó»."),
-    ("Tablero de inicio", "Total vendido, kilos vendidos por corte, cobrado por medio de pago y saldos a cobrar, por semana, mes, trimestre, semestre o año."),
+    ("Carga inicial desde la planilla", "Se cargan los 94 clientes de la planilla con todo su historial (saldo anterior, ventas, pagos, descuentos y cargos), cotejado hoja por hoja y fila por fila contra el Excel: cada saldo coincide con el de su hoja y con la hoja SALDOS."),
     ("Celular, tablet y computadora", "Las pantallas se adaptan al tamaño, y los calendarios y las listas desplegables tienen el mismo estilo del sistema."),
 ]:
     story.append(check(t_, d_))
 
 story.append(CondPageBreak(135 * mm))  # que el título no quede solo al pie de la página
 story += heading("Así se ve")
-story.append(figure(IMG["login"], 150, "Ingreso: acceso con email y contraseña."))
-story.append(figure(IMG["inicio"], 150, "Inicio: período elegido arriba, tarjetas con los totales, una tarjeta por producto y, a la derecha, cobros por medio de pago y mayores saldos."))
+story.append(figure(IMG["login"], 150, "Ingreso: el logo y una foto de la marca, con acceso por email y contraseña."))
+story.append(figure(IMG["inicio"], 150, "Inicio: período elegido arriba, tarjetas con los totales y, por rubro, los 4 productos más vendidos con «Mostrar más». A la derecha, cobros por medio de pago y mayores saldos."))
 story.append(figure(IMG["clientes"], 150, "Clientes: buscador, botón de filtros y lista con último pago y saldo adeudado. A la derecha, las opciones y el resumen."))
 story.append(figure(IMG["filtros"], 150, "Filtros de clientes: localidad, saldo adeudado, último pago y orden de la lista."))
 story.append(figure(IMG["cuenta"], 150, "Cuenta corriente de un cliente: tarjetas con el saldo y el historial de movimientos, con filtros por período y descarga en PDF."))
-story.append(figure(IMG["venta"], 150, "Registrar venta: fecha, número de remito y productos con sus kilos y su precio por kilo."))
+story.append(figure(IMG["venta"], 150, "Registrar venta: el selector de producto con buscador, filtros por rubro y el precio de lista de cada producto."))
 story.append(figure(IMG["pago"], 150, "Registrar pago: importe, medio de pago y saldo después del pago, con el calendario del sistema."))
+story.append(figure(IMG["remitos"], 150, "Remitos: todas las ventas, con buscador y filtro por período; de cada una se puede ver, imprimir, descargar y eliminar."))
+story.append(figure(IMG["remito_pdf"], 100, "Remito en PDF: logo, datos del cliente, renglones con kilos y precio, total en letras y lugar para la firma."))
+story.append(figure(IMG["productos"], 150, "Productos: rubro y precio por kilo de cada producto, para el administrador. El resto de los usuarios los ve sin editar."))
 story.append(figure(IMG["pagos"], 150, "Pagos: todos los cobros con el total y el desglose por medio de pago."))
 story.append(figure(IMG["usuarios"], 150, "Usuarios (solo administrador): rol y estado de cada usuario, e invitaciones pendientes. Ejemplo con datos ficticios."))
-story.append(figure(IMG["invitar"], 150, "Invitar usuario: email y rol con el que va a entrar."))
 
 story.append(CondPageBreak(70 * mm))
 story += heading("Estado actual")
-story.append(status_line("<b>Las pantallas de la primera etapa están programadas y probadas</b> con los datos de la planilla, en modo de demostración."))
-story.append(status_line("La base de datos está diseñada y probada: tablas, permisos por rol y carga inicial de la planilla con control de totales (el saldo coincide con el Excel)."))
+story.append(status_line("<b>Las pantallas de la primera etapa están programadas y probadas</b> con los datos reales de la planilla, en modo de demostración."))
+story.append(status_line("La base de datos está diseñada y probada: tablas, permisos por rol y la carga de los <b>94 clientes</b> con su historial completo (813 movimientos), con un control de saldo cliente por cliente."))
+story.append(status_line("Los saldos de los 94 clientes coinciden con la hoja SALDOS de la planilla: <b>total $ 59.312.648</b>."))
 story.append(Spacer(1, 4))
 story.append(callout(
     "FALTA PARA EMPEZAR A USARLO",
-    "<b>Conectar la base de datos real:</b> crear el proyecto de Supabase, cargar la estructura y publicar el sistema con sus claves. "
-    "<b>Detalle histórico:</b> están cargados los 89 clientes de la planilla con su saldo al 11/11/2026 y la lista de precios completa; el detalle de las ventas y los pagos anteriores quedó cargado para una sola cuenta, de muestra. "
-    "<b>Revisar los nombres de los productos</b>: en las cuentas de la planilla figuran escritos de varias formas y hay que unificarlos con la lista de precios.",
+    "<b>Conectar la base de datos real:</b> crear el proyecto de Supabase, correr los scripts de carga en orden y publicar el sistema con sus claves. "
+    "<b>Completar los datos de la empresa</b> que salen en el remito (dirección, teléfono, C.U.I.T.): lo que falta no se imprime. "
+    "<b>Medio de pago de los pagos anteriores:</b> la planilla no lo trae, así que quedan «sin especificar» y se completan después. "
+    "<b>Clasificar los productos nuevos:</b> los que se escriben a mano en una venta aparecen sin rubro hasta que el administrador se lo asigne.",
     AZUL_HEX))
 story.append(Spacer(1, 6))
 story.append(Paragraph(
     "Los servicios de terceros que usa el sistema (base de datos y publicación online) tienen planes gratuitos que alcanzan para empezar.", small))
 
+story.append(CondPageBreak(75 * mm))  # el bloque de valor no se parte entre dos páginas
+story += heading("Valor estimado de la primera etapa")
+story.append(Paragraph(pesos_ar(PRECIO_ETAPA_1), precio_grande))
+story.append(Spacer(1, 4))
+story.append(Paragraph(
+    "Incluye el diseño y el desarrollo completo de lo que se describe en este resumen: ingreso con usuarios y roles, clientes y cuentas corrientes, "
+    "ventas con buscador de productos, pagos, descuentos y cargos, remitos con PDF e impresión, productos con rubros y precios de lista, tablero de inicio, "
+    "resumen de cuenta en PDF, y la carga y el cotejo de los 94 clientes de la planilla, con sus saldos verificados.", body))
+story.append(Spacer(1, 3))
+story.append(Paragraph("Valor estimado, en pesos argentinos. No incluye los servicios de terceros (base de datos y publicación), que tienen planes gratuitos para empezar.", small))
+
 story.append(CondPageBreak(95 * mm))
 story += heading("Próximas etapas")
 story.append(Paragraph(
-    "Lo que sigue queda fuera de la primera etapa. Todas figuran en el menú, separadas en «Segunda etapa» y «Tercera etapa». Stock y Proveedores ya tienen un adelanto armado; las de la tercera etapa muestran qué van a hacer.", body))
+    "Lo que sigue queda fuera de la primera etapa y se puede contratar por separado. La segunda etapa completa la operación con la mercadería y los proveedores; "
+    "la tercera suma avisos, personal y gastos. En la segunda ya hay un adelanto armado.", body))
 story.append(Spacer(1, 8))
 
 story.append(modulo(
-    "Stock de mercadería y lista de precios", "SEGUNDA ETAPA · CON ADELANTO",
-    "Saber cuántos kilos hay de cada corte sin contarlos a mano todos los días.",
+    "Stock de mercadería", "SEGUNDA ETAPA · CON ADELANTO",
+    "Saber cuántos kilos hay de cada corte sin contarlos a mano todos los días. La lista de precios por producto ya está en la primera etapa.",
     [
         "El stock entra con cada compra de mercadería y sale solo con los kilos de cada venta.",
         "Ajuste por conteo: se carga lo que hay de verdad y el sistema registra la diferencia (merma).",
         "Arranca en cero: cada corte empieza a llevar stock desde su primera carga.",
-        "Lista de precios por corte: al vender, el precio se completa solo. Muestra el último costo y el margen por kilo.",
-        "Tarjetas de stock por corte en el Inicio.",
-    ]))
+        "Aviso en la venta cuando se vende más de lo que figura en stock, y último costo y margen por kilo.",
+        "Tarjetas de stock por producto en el Inicio.",
+    ], valor=valor_de("Stock de mercadería")))
 story.append(modulo(
     "Proveedores y cuentas a pagar", "SEGUNDA ETAPA · CON ADELANTO",
     "Lo mismo que la cuenta corriente de los clientes, pero al revés: a quién se le compra y cuánto se le debe.",
@@ -279,9 +325,7 @@ story.append(modulo(
         "Cada compra de mercadería queda asociada a su proveedor, con los kilos y el costo.",
         "Cuentas a pagar: lo comprado menos lo ya pagado a cada proveedor.",
         "Registro de los pagos a proveedores, con fecha, importe y medio de pago.",
-    ]))
-story.append(figure(IMG["stock"], 150, "Adelanto de Stock: una tarjeta por corte con los kilos disponibles. Ejemplo con datos ficticios."))
-story.append(figure(IMG["proveedores"], 150, "Adelanto de Proveedores: cuentas a pagar con lo comprado, lo pagado y el saldo. Ejemplo con datos ficticios."))
+    ], valor=valor_de("Proveedores y cuentas a pagar")))
 
 story.append(modulo(
     "Avisos de cobro y de pago", "TERCERA ETAPA",
@@ -290,14 +334,14 @@ story.append(modulo(
         "Aviso cuando pasaron 7 días desde la compra de un cliente y todavía no pagó.",
         "El mismo aviso para los pagos a proveedores, a los 7 días de la compra.",
         "Forma de aviso a definir: lista de avisos dentro del sistema y mensaje de WhatsApp ya armado para enviar con un botón.",
-    ]))
+    ], valor=valor_de("Avisos de cobro y de pago")))
 story.append(modulo(
     "Planilla de empleados", "TERCERA ETAPA",
     "Registro informativo de los pagos a empleados.",
     [
         "Fecha y monto de cada pago, por empleado.",
         "Solo para consulta: no genera recibos de sueldo ni liquidaciones.",
-    ]))
+    ], valor=valor_de("Planilla de empleados")))
 story.append(modulo(
     "Gastos de la empresa", "TERCERA ETAPA",
     "Documentar mes a mes en qué se gasta.",
@@ -305,7 +349,33 @@ story.append(modulo(
         "Carga de cada gasto por rubro: luz, combustible, y los que se definan.",
         "Total de gastos del mes y por rubro.",
         "Tarjeta de gastos del mes en el Inicio.",
-    ]))
+    ], valor=valor_de("Gastos de la empresa")))
+
+# ── Resumen de valores ──
+story.append(CondPageBreak(95 * mm))
+story += heading("Resumen de valores estimados")
+total_2 = sum(m["precio"] for m in MODULOS if m["etapa"] == 2)
+total_3 = sum(m["precio"] for m in MODULOS if m["etapa"] == 3)
+der = ParagraphStyle("der", parent=body, alignment=2)
+der_b = ParagraphStyle("der_b", parent=body, alignment=2, fontName="Helvetica-Bold")
+bold = ParagraphStyle("bold", parent=body, fontName="Helvetica-Bold")
+filas = [[Paragraph("<b>Etapa y módulo</b>", small), Paragraph("<b>Valor estimado</b>", ParagraphStyle("r", parent=small, alignment=2))]]
+filas.append([Paragraph("Primera etapa — sistema completo descripto en este resumen", bold), Paragraph(pesos_ar(PRECIO_ETAPA_1), der_b)])
+for etapa, total in ((2, total_2), (3, total_3)):
+    filas.append([Paragraph(f"{'Segunda' if etapa == 2 else 'Tercera'} etapa", bold), Paragraph(pesos_ar(total), der_b)])
+    for m in MODULOS:
+        if m["etapa"] == etapa:
+            filas.append([Paragraph("&nbsp;&nbsp;&nbsp;&nbsp;" + m["nombre"], body), Paragraph(pesos_ar(m["precio"]), der)])
+filas.append([Paragraph("<b>Total de las tres etapas</b>", bold), Paragraph(pesos_ar(PRECIO_ETAPA_1 + total_2 + total_3), der_b)])
+t = Table(filas, colWidths=[CONTENT_W - 50 * mm, 50 * mm])
+t.setStyle(TableStyle([
+    ("BACKGROUND", (0, 0), (-1, 0), SOFT), ("LINEBELOW", (0, 0), (-1, -2), 0.4, LINE),
+    ("BACKGROUND", (0, -1), (-1, -1), SOFT), ("LINEABOVE", (0, -1), (-1, -1), 1.2, BLUE),
+    ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+story.append(t)
+story.append(Spacer(1, 6))
+story.append(Paragraph("Valores estimados, en pesos argentinos. Cada etapa se puede contratar por separado y los módulos pueden cambiar de etapa o de alcance si se definen distinto.", small))
 
 doc = BaseDocTemplate(OUT, pagesize=A4, leftMargin=M, rightMargin=M, topMargin=14 * mm, bottomMargin=22 * mm,
                       title="Carnes Rosales — Resumen del sistema", author="Ezequiel Dehnike")

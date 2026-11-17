@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { actualizarCliente, crearCliente, eliminarCliente } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
+import { useNotificaciones } from "@/components/ui/Notificaciones";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO } from "@/lib/formato";
 import type { Cliente, NuevoCliente } from "@/lib/tipos";
@@ -33,6 +34,7 @@ export function FormCliente({
   const [datos, setDatos] = useState<NuevoCliente>(cliente ?? VACIO);
   const [saldoAnterior, setSaldoAnterior] = useState(saldoActual ? aCampo(saldoActual) : "");
   const { pendiente, error, setError, correr } = useAccion();
+  const { confirmar } = useNotificaciones();
 
   const cambiar = (campo: keyof NuevoCliente) => (e: { target: { value: string } }) =>
     setDatos((d) => ({ ...d, [campo]: e.target.value }));
@@ -42,14 +44,20 @@ export function FormCliente({
     if (!datos.nombreFantasia.trim()) return setError("Ingresá el nombre de fantasía.");
     const saldo = aNumero(saldoAnterior) || 0;
     if (saldo < 0) return setError("El saldo anterior no puede ser negativo.");
-    if (cliente) correr(() => actualizarCliente(cliente.id, datos, saldo), () => onListo(cliente.id));
-    else correr(() => crearCliente(datos, saldo), (dato) => onListo(dato.id));
+    if (cliente) correr(() => actualizarCliente(cliente.id, datos, saldo), () => onListo(cliente.id), "Cliente guardado");
+    else correr(() => crearCliente(datos, saldo), (dato) => onListo(dato.id), "Cliente creado");
   }
 
-  function eliminar() {
+  async function eliminar() {
     if (!cliente) return;
-    if (!window.confirm(`¿Eliminar a ${cliente.nombreFantasia}? No se puede deshacer.`)) return;
-    correr(() => eliminarCliente(cliente.id), () => router.push("/clientes"));
+    const ok = await confirmar({
+      titulo: `¿Eliminar a ${cliente.nombreFantasia}?`,
+      mensaje: "Se borra el cliente. No se puede deshacer.",
+      confirmar: "Eliminar cliente",
+      peligro: true,
+    });
+    if (!ok) return;
+    correr(() => eliminarCliente(cliente.id), () => router.push("/clientes"), "Cliente eliminado");
   }
 
   return (

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { FiltroPeriodo, Tarjeta } from "@/components/clientes/comunes";
 import { CardLateral, ColumnaLateral } from "@/components/layout/CardLateral";
-import { ScaleIcon } from "@/components/layout/icons";
+import { ChevronRightIcon, ScaleIcon } from "@/components/layout/icons";
 import { fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
 import { MEDIOS_PAGO, redondear, saldoDe, subtotalItem, type Cliente, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 
@@ -26,6 +26,69 @@ const EN_PERIODO: Record<Periodo, string> = {
   semestre: "este semestre",
   anio: "este año",
 };
+
+const CARDS_INICIALES = 4;
+
+type CorteVendido = { nombre: string; kilos: number; importe: number };
+
+/** Un rubro: arranca con las 4 cards más vendidas, "Mostrar más" despliega el resto y el título abre o cierra todo el rubro. */
+function SeccionRubro({ rubro, lista, kilosRubro }: { rubro: string; lista: CorteVendido[]; kilosRubro: number }) {
+  const [abierto, setAbierto] = useState(true);
+  const [verTodo, setVerTodo] = useState(false);
+  const visibles = verTodo ? lista : lista.slice(0, CARDS_INICIALES);
+  const ocultas = lista.length - visibles.length;
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        aria-expanded={abierto}
+        className="mb-2 flex w-full items-center gap-2 border-b border-brand-border pb-1.5 text-left hover:text-brand"
+      >
+        <ChevronRightIcon className={`h-4 w-4 shrink-0 text-brand transition-transform ${abierto ? "rotate-90" : ""}`} />
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{rubro}</h3>
+        <span className="ml-auto text-xs tabular-nums text-slate-500">
+          {kilos(kilosRubro)} kg · {lista.length} {lista.length === 1 ? "producto" : "productos"}
+        </span>
+      </button>
+      {abierto && (
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {visibles.map((c) => (
+              <div key={c.nombre} className={`rounded-2xl border border-brand-border bg-white p-4 ${c.kilos === 0 ? "opacity-60" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
+                    <ScaleIcon className="h-4 w-4" />
+                  </span>
+                  <p className="min-w-0 text-sm font-semibold leading-tight text-slate-900">{c.nombre}</p>
+                </div>
+                <p className="mt-3 text-xl font-bold tabular-nums text-slate-900">{kilos(c.kilos)} kg</p>
+                {c.kilos > 0 ? (
+                  <>
+                    <p className="mt-0.5 text-sm tabular-nums text-slate-700">{pesos(c.importe)}</p>
+                    <p className="mt-0.5 text-xs tabular-nums text-slate-500">Promedio {pesos(c.importe / c.kilos)} por kilo</p>
+                  </>
+                ) : (
+                  <p className="mt-0.5 text-xs text-slate-500">Sin ventas en el período</p>
+                )}
+              </div>
+            ))}
+          </div>
+          {lista.length > CARDS_INICIALES && (
+            <button
+              type="button"
+              onClick={() => setVerTodo((v) => !v)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft"
+            >
+              {verTodo ? "Mostrar menos" : `Mostrar más (${ocultas})`}
+            </button>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 /** Tablero: ventas, kilos por corte y cobros del período elegido, más lo que queda por cobrar. */
 export function Inicio({
@@ -176,35 +239,7 @@ export function Inicio({
         ) : (
           <div className="space-y-5">
             {rubros.map(({ rubro, lista, kilosRubro }) => (
-              <section key={rubro}>
-                <div className="mb-2 flex items-baseline justify-between gap-3 border-b border-brand-border pb-1.5">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">{rubro}</h3>
-                  <span className="text-xs tabular-nums text-slate-500">
-                    {kilos(kilosRubro)} kg · {lista.length} {lista.length === 1 ? "producto" : "productos"}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {lista.map((c) => (
-                    <div key={c.nombre} className={`rounded-2xl border border-brand-border bg-white p-4 ${c.kilos === 0 ? "opacity-60" : ""}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand">
-                          <ScaleIcon className="h-4 w-4" />
-                        </span>
-                        <p className="min-w-0 text-sm font-semibold leading-tight text-slate-900">{c.nombre}</p>
-                      </div>
-                      <p className="mt-3 text-xl font-bold tabular-nums text-slate-900">{kilos(c.kilos)} kg</p>
-                      {c.kilos > 0 ? (
-                        <>
-                          <p className="mt-0.5 text-sm tabular-nums text-slate-700">{pesos(c.importe)}</p>
-                          <p className="mt-0.5 text-xs tabular-nums text-slate-500">Promedio {pesos(c.importe / c.kilos)} por kilo</p>
-                        </>
-                      ) : (
-                        <p className="mt-0.5 text-xs text-slate-500">Sin ventas en el período</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <SeccionRubro key={rubro} rubro={rubro} lista={lista} kilosRubro={kilosRubro} />
             ))}
           </div>
         )}

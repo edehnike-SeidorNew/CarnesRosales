@@ -30,6 +30,8 @@ export interface Repo {
   registrarAjuste(ajuste: NuevoAjuste): Promise<void>;
   eliminarStockMovimiento(id: string): Promise<void>;
   fijarPrecio(producto: string, precio: number | null): Promise<void>;
+  /** Rubro del producto (Vacuno, Cerdo...); "" lo deja sin rubro. */
+  fijarCategoria(producto: string, categoria: string): Promise<void>;
   /** Agrega un corte al catálogo (si ya existe, no hace nada). */
   crearCorte(nombre: string): Promise<void>;
 

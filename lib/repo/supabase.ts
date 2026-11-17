@@ -41,6 +41,7 @@ type FilaMovimiento = {
   comprobante: string;
   importe: Num | null;
   medio_pago: MedioPago | null;
+  nota: string | null;
   creado_por: string;
   movimiento_items: { orden: number; kilos: Num; precio: Num; productos: Anidado<{ nombre: string }> }[] | null;
 };
@@ -123,6 +124,8 @@ function aMovimiento(f: FilaMovimiento): Movimiento {
     return { ...base, tipo: "venta", items };
   }
   if (f.tipo === "pago") return { ...base, tipo: "pago", importe: Number(f.importe), medioPago: f.medio_pago };
+  if (f.tipo === "descuento") return { ...base, tipo: "descuento", importe: Number(f.importe), nota: f.nota ?? "" };
+  if (f.tipo === "cargo") return { ...base, tipo: "cargo", importe: Number(f.importe), nota: f.nota ?? "" };
   return { ...base, tipo: "saldo_inicial", importe: Number(f.importe) };
 }
 
@@ -135,7 +138,7 @@ export const repoSupabase: Repo = {
         db
           .from("movimientos")
           .select(
-            "id, cliente_id, fecha, tipo, comprobante, importe, medio_pago, creado_por, movimiento_items(orden, kilos, precio, productos(nombre))",
+            "id, cliente_id, fecha, tipo, comprobante, importe, medio_pago, nota, creado_por, movimiento_items(orden, kilos, precio, productos(nombre))",
           )
           .order("fecha")
           .order("orden")
@@ -237,6 +240,7 @@ export const repoSupabase: Repo = {
       comprobante: m.comprobante,
       importe: m.importe,
       medio_pago: m.tipo === "pago" ? m.medioPago : null,
+      nota: m.tipo === "descuento" || m.tipo === "cargo" ? m.nota : "",
     });
     comprobar(error);
   },
@@ -256,6 +260,17 @@ export const repoSupabase: Repo = {
       const { data, error } = await db.from("movimientos").update({ importe: cambios.importe }).eq("id", id).eq("tipo", "saldo_inicial").select("id");
       comprobar(error);
       if (!data?.length) throw new Error("No se pudo modificar el saldo anterior (sin permiso o no existe)");
+      return;
+    }
+    if (cambios.tipo === "descuento" || cambios.tipo === "cargo") {
+      const { data, error } = await db
+        .from("movimientos")
+        .update({ fecha: cambios.fecha, comprobante: cambios.comprobante, importe: cambios.importe, nota: cambios.nota })
+        .eq("id", id)
+        .eq("tipo", cambios.tipo)
+        .select("id");
+      comprobar(error);
+      if (!data?.length) throw new Error(`No se pudo modificar el ${cambios.tipo} (sin permiso o no existe)`);
       return;
     }
     const { data, error } = await db
@@ -311,6 +326,15 @@ export const repoSupabase: Repo = {
     const { data, error } = await db.from("productos").update({ precio }).eq("id", productoId).select("id");
     comprobar(error);
     if (!data?.length) throw new Error("No se pudo guardar el precio (sin permiso)");
+  },
+
+  async fijarCategoria(producto, categoria) {
+    const db = await createClient();
+    const { data: productoId, error: errorProducto } = await db.rpc("producto_por_nombre", { p_nombre: producto });
+    comprobar(errorProducto);
+    const { data, error } = await db.from("productos").update({ categoria }).eq("id", productoId).select("id");
+    comprobar(error);
+    if (!data?.length) throw new Error("No se pudo guardar el rubro (sin permiso)");
   },
 
   async crearCorte(nombre) {

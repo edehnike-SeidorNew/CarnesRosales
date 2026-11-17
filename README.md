@@ -21,20 +21,25 @@ ejemplo, en memoria (se pierden al reiniciar).
 1. **Crear el proyecto** en [supabase.com](https://supabase.com) (región São Paulo queda cerca).
 2. **Correr los SQL, en este orden**, cada uno en *SQL Editor > New query > pegar todo > Run*:
    1. `supabase/migrations/0001_esquema.sql` — clientes, productos, movimientos.
-   2. `supabase/seed/0002_datos_planilla.sql` — los 89 clientes de la planilla con su saldo al
-      11/11/2026 (y la cuenta completa de El Buen Gusto). Termina con un control del saldo de cada
-      cliente y del total: si un número no coincide, no carga nada. Sólo corre con la base vacía.
-   3. `supabase/migrations/0003_stock_usuarios_roles.sql` — stock, proveedores, lista de precios,
+   2. `supabase/migrations/0003_stock_usuarios_roles.sql` — stock, proveedores, lista de precios,
       quién cargó cada cosa y usuarios con roles.
-   4. `supabase/seed/0004_cortes.sql` — catálogo de productos con rubro y precio, tomado de la hoja
+   3. `supabase/seed/0004_cortes.sql` — catálogo de productos con rubro y precio, tomado de la hoja
       LISTA DE PRECIOS de la planilla.
+   4. `supabase/seed/0005_clientes_y_ventas.sql` — los 94 clientes de la planilla (una hoja cada
+      uno: las numeradas 1 a 90, más AMERICO, DAVID R, KOKI y VARIOS), cada uno con su saldo anterior, sus ventas y sus pagos, **a nombre de
+      `renzo_rosales@hotmail.es`** (columna *Cargó*). Carga un cliente por vez y después de cada uno
+      verifica que el saldo dé exactamente el de su hoja; si no da, frena y avisa cuál. Se puede
+      volver a correr: los que ya están cargados se saltean. Los descuentos, retiros y comida de la
+      planilla van como "descuento" (restan del saldo pero no cuentan como cobrado). Deja a Renzo como administrador (ver
+      paso 4). Los 94 saldos coinciden con la hoja SALDOS (total $ 59.312.648).
 3. **Variables de entorno:** copiar `.env.local.example` como `.env.local` y completar
    `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (*Project Settings > API*; la clave es
    la "anon" / "publishable", nunca la "service_role" / "secret"). Reiniciar `npm run dev`.
-4. **Crear tu usuario (queda como administrador):** entrar a la app, tocar *"Creá tu cuenta"* y
-   registrarte. **La primera cuenta que se registra es el administrador**, así que hacelo apenas
-   termines el paso 2. (Si ya habías creado usuarios desde el panel de Supabase antes de correr el
-   0003, esos quedan como administradores.)
+4. **Crear el usuario administrador:** entrar a la app, tocar *"Creá tu cuenta"* y registrarse.
+   **La primera cuenta que se registra es el administrador.** El `0005` ya deja invitado como
+   administrador a `renzo_rosales@hotmail.es`: si se registra con ese email, entra con todos los
+   permisos aunque ya exista otra cuenta. (Si ya había usuarios creados desde el panel de Supabase
+   antes de correr el 0003, esos quedan como administradores.)
 5. **Links de los mails:** en *Authentication > URL Configuration* poner en *Site URL* la dirección
    de la app y agregarla en *Redirect URLs* (por ejemplo `https://tu-app.vercel.app/**` y
    `http://localhost:3000/**`). Sin esto no funcionan confirmar el email ni recuperar la contraseña.
@@ -44,8 +49,9 @@ ejemplo, en memoria (se pierden al reiniciar).
 
 ## Usuarios y roles
 
-- **Administrador:** hace todo, incluido borrar y administrar usuarios.
-- **Vendedor:** carga y corrige clientes, ventas, pagos, compras y stock. No borra.
+- **Administrador:** hace todo, incluido borrar y administrar usuarios, y es el único que cambia el rubro y el
+  precio de lista de los productos (menú *Productos*).
+- **Vendedor:** carga y corrige clientes, ventas, pagos, compras y stock. No borra. Ve la lista de precios pero no la edita.
 - **Solo lectura:** consulta.
 
 Para sumar a alguien: *Usuarios > Invitar usuario* (email y rol) y avisarle que se registre con ese
@@ -64,3 +70,5 @@ Las mismas reglas están en la base (RLS), no sólo en las pantallas.
 - `app/acciones.ts`: altas, correcciones y bajas, con control de rol.
 - `proxy.ts` + `lib/auth/`: sesión, roles y protección de todas las páginas.
 - `lib/pdf/resumenCuenta.tsx`: resumen de cuenta en PDF para enviarle al cliente.
+- `lib/pdf/remito.tsx` + `components/remitos/`: remitos (cada venta) con vista previa, impresión y PDF. Los datos de la empresa
+  que salen en el encabezado están en `lib/empresa.ts`: lo que está vacío no se imprime.

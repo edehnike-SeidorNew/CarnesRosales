@@ -1,9 +1,20 @@
 -- Carnes Rosales — stock (compras y ajustes), proveedores, lista de precios,
 -- registro de quién cargó cada cosa y usuarios con roles.
--- Correr DESPUÉS de 0001_esquema.sql (y de 0002_datos_planilla.sql si se cargó la planilla).
+-- Correr DESPUÉS de 0001_esquema.sql (y ANTES de la carga de clientes, 0005_clientes_y_ventas.sql).
 -- SQL Editor > New query > pegar todo > Run. Va en una transacción.
 
 begin;
+
+-- Avisos claros: este script va DESPUÉS de 0001 y se corre una sola vez.
+do $$
+begin
+  if to_regclass('public.productos') is null then
+    raise exception 'Falta correr antes 0001_esquema.sql.';
+  end if;
+  if exists (select 1 from pg_type where typname = 'rol_usuario') then
+    raise exception 'Este script ya se corrió (o quedó a medias). Corré primero 0000_limpiar.sql, después 0001 y recién este.';
+  end if;
+end $$;
 
 -- ===========================================================================
 -- USUARIOS Y ROLES
@@ -356,5 +367,10 @@ begin
     execute format('create policy "borrar" on public.%I for delete to authenticated using (public.mi_rol() = ''admin'')', t);
   end loop;
 end $$;
+
+-- Sólo el administrador cambia el rubro y el precio de los productos (vendedor y lectura los usan, pero no los editan).
+drop policy "modificar" on public.productos;
+create policy "modificar" on public.productos for update to authenticated
+  using (public.mi_rol() = 'admin') with check (public.mi_rol() = 'admin');
 
 commit;

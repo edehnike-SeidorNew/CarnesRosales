@@ -10,6 +10,8 @@ type Estado = {
   clientes: Cliente[];
   movimientos: Movimiento[];
   precios: Map<string, number>;
+  /** Rubro de cada producto (por nombre en minúsculas). */
+  categorias: Map<string, string>;
   /** Cortes agregados a mano al catálogo. */
   cortes: string[];
   stock: StockMovimiento[];
@@ -19,12 +21,13 @@ type Estado = {
   invitaciones: Invitacion[];
 };
 
-const global = globalThis as { __carnesRosalesDemo5?: Estado };
+const global = globalThis as { __carnesRosalesDemo6?: Estado };
 // En globalThis para que sobreviva a las recargas de código en desarrollo.
-const estado: Estado = (global.__carnesRosalesDemo5 ??= {
+const estado: Estado = (global.__carnesRosalesDemo6 ??= {
   clientes: [...CLIENTES],
   movimientos: [...MOVIMIENTOS],
   precios: new Map(CATALOGO.flatMap((p) => (p.precio === null ? [] : [[p.nombre.toLowerCase(), p.precio] as [string, number]]))),
+  categorias: new Map(CATALOGO.map((p) => [p.nombre.toLowerCase(), p.categoria] as [string, string])),
   // Los artículos de la hoja LISTA DE PRECIOS de la planilla.
   cortes: CATALOGO.map((p) => p.nombre),
   stock: [],
@@ -33,8 +36,6 @@ const estado: Estado = (global.__carnesRosalesDemo5 ??= {
   miembros: [{ id: "demo-2", email: "vendedor@demo.test", nombre: "Vendedor de ejemplo", rol: "vendedor", activo: true }],
   invitaciones: [],
 });
-
-const CATEGORIAS = new Map(CATALOGO.map((p) => [p.nombre.toLowerCase(), p.categoria]));
 
 const nuevoId = (prefijo: string) => `${prefijo}-${Date.now()}-${Math.round(Math.random() * 1e6)}`;
 const limpio = (texto: string) => texto.trim().replace(/\s+/g, " ");
@@ -52,7 +53,7 @@ function productos(): Producto[] {
   for (const s of estado.stock) if (!vistos.has(s.producto.toLowerCase())) vistos.set(s.producto.toLowerCase(), s.producto);
   for (const c of estado.cortes) if (!vistos.has(c.toLowerCase())) vistos.set(c.toLowerCase(), c);
   return [...vistos.entries()]
-    .map(([clave, nombre]) => ({ nombre, precio: estado.precios.get(clave) ?? null, categoria: CATEGORIAS.get(clave) ?? "" }))
+    .map(([clave, nombre]) => ({ nombre, precio: estado.precios.get(clave) ?? null, categoria: estado.categorias.get(clave) ?? "" }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
@@ -163,6 +164,12 @@ export const repoMemoria: Repo = {
     const clave = limpio(producto).toLowerCase();
     if (precio === null) estado.precios.delete(clave);
     else estado.precios.set(clave, precio);
+  },
+
+  async fijarCategoria(producto, categoria) {
+    const clave = limpio(producto).toLowerCase();
+    if (!categoria) estado.categorias.delete(clave);
+    else estado.categorias.set(clave, categoria);
   },
 
   async crearCorte(nombre) {

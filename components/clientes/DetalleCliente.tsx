@@ -4,26 +4,29 @@ import { useState } from "react";
 import Link from "next/link";
 import { eliminarMovimiento } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
+import { useNotificaciones } from "@/components/ui/Notificaciones";
 import { CardLateral } from "@/components/layout/CardLateral";
-import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, PrinterIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
+import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, EyeIcon, PlusIcon, PrinterIcon, ReceiptIcon, TagIcon, TrashIcon } from "@/components/layout/icons";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
 import { BOTON_SECUNDARIO, fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
 import { efectoEnSaldo, etiquetaMedio, redondear, subtotalItem, type Cliente, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 import { Autor, FiltroPeriodo, Iniciales, Lista, Tarjeta, Vacio } from "./comunes";
 import { FormCliente } from "./FormCliente";
-import { FormPago, FormVenta } from "./Formularios";
+import { FormCargo, FormDescuento, FormPago, FormVenta } from "./Formularios";
 
-type VistaId = "historial" | "venta" | "pago" | "editar";
+type VistaId = "historial" | "venta" | "pago" | "descuento" | "cargo" | "editar";
 
 const OPCIONES: (OpcionPanel<VistaId> & { titulo: string; requiereCargar: boolean })[] = [
   { id: "historial", label: "Historial", titulo: "Historial de movimientos", Icon: HistoryIcon, requiereCargar: false },
   { id: "venta", label: "Registrar venta", titulo: "Registrar venta", Icon: ReceiptIcon, requiereCargar: true },
   { id: "pago", label: "Registrar pago", titulo: "Registrar pago", Icon: CashIcon, requiereCargar: true },
+  { id: "descuento", label: "Registrar descuento", titulo: "Registrar descuento", Icon: TagIcon, requiereCargar: true },
+  { id: "cargo", label: "Registrar cargo", titulo: "Registrar cargo", Icon: PlusIcon, requiereCargar: true },
   { id: "editar", label: "Editar cliente", titulo: "Editar cliente", Icon: PencilIcon, requiereCargar: true },
 ];
 
-const TD = "px-3 py-2.5";
-const NUM = `${TD} text-right tabular-nums`;
+const TD = "px-2.5 py-2.5 align-middle";
+const NUM = `${TD} whitespace-nowrap text-right tabular-nums`;
 
 function Historial({
   filas,
@@ -39,9 +42,17 @@ function Historial({
   onEditar: (m: Movimiento) => void;
 }) {
   const { pendiente, error, correr } = useAccion();
+  const { confirmar } = useNotificaciones();
 
-  function borrar(m: Movimiento) {
-    if (window.confirm("¿Eliminar este movimiento? El saldo se recalcula.")) correr(() => eliminarMovimiento(m.id));
+  async function borrar(m: Movimiento) {
+    const que = m.tipo === "venta" ? "venta" : m.tipo === "pago" ? "pago" : m.tipo === "descuento" ? "descuento" : m.tipo === "cargo" ? "cargo" : "movimiento";
+    const ok = await confirmar({
+      titulo: `¿Eliminar ${m.tipo === "venta" ? "esta" : "este"} ${que}?`,
+      mensaje: "El saldo del cliente se recalcula. No se puede deshacer.",
+      confirmar: "Eliminar",
+      peligro: true,
+    });
+    if (ok) correr(() => eliminarMovimiento(m.id), undefined, `${que.charAt(0).toUpperCase()}${que.slice(1)} ${m.tipo === "venta" ? "eliminada" : "eliminado"}`);
   }
 
   if (filas.length === 0) {
@@ -58,7 +69,7 @@ function Historial({
       <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${pendiente ? "opacity-60" : ""}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-left text-sm">
-            <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
+            <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand [&_th]:align-middle">
               <tr>
                 <th className={`${TD} font-semibold`}>Fecha</th>
                 <th className={`${TD} font-semibold`}>N° comprobante</th>
@@ -83,7 +94,7 @@ function Historial({
                       precio: pesos(item.precio),
                       subtotal: pesos(subtotalItem(item)),
                     }))
-                  : [{ detalle: m.tipo === "pago" ? "Pago" : "Saldo anterior", kilos: "", precio: "", subtotal: "" }];
+                  : [{ detalle: m.tipo === "pago" ? "Pago" : m.tipo === "descuento" ? `Descuento${m.nota ? ` · ${m.nota}` : ""}` : m.tipo === "cargo" ? `Cargo${m.nota ? ` · ${m.nota}` : ""}` : "Saldo anterior", kilos: "", precio: "", subtotal: "" }];
               const ultimo = renglones.length - 1;
               const importe = efectoEnSaldo(m);
 
@@ -91,10 +102,10 @@ function Historial({
                 // Un tbody por movimiento: una venta con varios productos se lee como un solo bloque.
                 <tbody key={m.id} className="border-t border-brand-border">
                   {renglones.map((r, i) => (
-                    <tr key={i} className={m.tipo === "pago" ? "bg-emerald-50/50" : ""}>
+                    <tr key={i} className={m.tipo === "pago" ? "bg-emerald-50/50" : m.tipo === "descuento" ? "bg-amber-50/60" : m.tipo === "cargo" ? "bg-sky-50/70" : ""}>
                       <td className={`${TD} whitespace-nowrap text-slate-800`}>{i === 0 ? fechaAR(m.fecha) : ""}</td>
-                      <td className={`${TD} text-slate-500`}>{i === 0 ? m.comprobante : ""}</td>
-                      <td className={`${TD} font-medium ${m.tipo === "pago" ? "text-emerald-800" : "text-slate-900"}`}>{r.detalle}</td>
+                      <td className={`${TD} max-w-[6rem] truncate text-slate-500`} title={i === 0 ? m.comprobante : undefined}>{i === 0 ? m.comprobante : ""}</td>
+                      <td className={`${TD} max-w-[14rem] truncate font-medium ${m.tipo === "pago" ? "text-emerald-800" : m.tipo === "descuento" ? "text-amber-800" : m.tipo === "cargo" ? "text-sky-800" : "text-slate-900"}`} title={r.detalle}>{r.detalle}</td>
                       <td className={`${TD} whitespace-nowrap ${m.tipo === "pago" && m.medioPago ? "text-slate-800" : "text-slate-400"}`}>
                         {m.tipo === "pago" ? etiquetaMedio(m.medioPago) : ""}
                       </td>
@@ -102,10 +113,15 @@ function Historial({
                       <td className={`${NUM} text-slate-800`}>{r.precio}</td>
                       <td className={`${NUM} text-slate-800`}>{r.subtotal}</td>
                       <td className={`${NUM} text-slate-900`}>{i === ultimo && importe > 0 ? pesos(importe) : ""}</td>
-                      <td className={`${NUM} font-semibold text-emerald-700`}>{i === ultimo && importe < 0 ? pesos(-importe) : ""}</td>
+                      <td className={`${NUM} font-semibold ${m.tipo === "descuento" ? "text-amber-700" : "text-emerald-700"}`}>{i === ultimo && importe < 0 ? pesos(-importe) : ""}</td>
                       <td className={`${NUM} font-semibold text-slate-900`}>{i === ultimo ? pesos(saldo) : ""}</td>
-                      <td className={`${TD} text-xs text-slate-500`}>{i === 0 && <Autor email={m.creadoPor} />}</td>
+                      <td className={`${TD} max-w-[6.5rem] truncate text-xs text-slate-500`}>{i === 0 && <Autor email={m.creadoPor} />}</td>
                       <td className="whitespace-nowrap pr-2 text-right">
+                        {i === 0 && m.tipo === "venta" && (
+                          <Link href={`/remitos/${m.id}`} aria-label="Ver remito" title="Ver remito" className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-brand-soft hover:text-brand">
+                            <EyeIcon className="h-4 w-4" />
+                          </Link>
+                        )}
                         {i === 0 && puedeCargar && m.tipo !== "saldo_inicial" && (
                           <button
                             type="button"
@@ -149,6 +165,7 @@ export function DetalleCliente({
   stock,
   puedeCargar,
   puedeBorrar,
+  vistaInicial,
 }: {
   cliente: Cliente;
   /** Sólo los movimientos de este cliente. */
@@ -156,8 +173,10 @@ export function DetalleCliente({
   stock: StockDeProducto[];
   puedeCargar: boolean;
   puedeBorrar: boolean;
+  /** Pantalla con la que abre (sólo si puede cargar): por ejemplo la venta, al venir de Nuevo remito. */
+  vistaInicial?: VistaId;
 }) {
-  const [vista, setVista] = useState<VistaId>("historial");
+  const [vista, setVista] = useState<VistaId>(puedeCargar && vistaInicial ? vistaInicial : "historial");
   const [editando, setEditando] = useState<Movimiento | null>(null);
   const [periodo, setPeriodo] = useState<Periodo>("todo");
 
@@ -181,10 +200,13 @@ export function DetalleCliente({
   const saldo = acumulado;
   const compras = sumar("venta");
   const pagos = sumar("pago");
+  const descuentos = sumar("descuento");
+  const cargos = sumar("cargo");
   const saldoAnterior = sumar("saldo_inicial");
   const ultimoPago = [...propios].reverse().find(({ m }) => m.tipo === "pago")?.m;
   const cantidadVentas = propios.filter(({ m }) => m.tipo === "venta").length;
   const cantidadPagos = propios.filter(({ m }) => m.tipo === "pago").length;
+  const cantidadDescuentos = propios.filter(({ m }) => m.tipo === "descuento").length;
 
   // El filtro sólo recorta lo que se muestra: el saldo de cada fila sigue siendo el acumulado real.
   const desde = inicioDePeriodo(periodo);
@@ -202,7 +224,7 @@ export function DetalleCliente({
     setEditando(null);
     setVista(id);
   };
-  const titulo = editando ? (editando.tipo === "venta" ? "Corregir venta" : "Corregir pago") : actual.titulo;
+  const titulo = editando ? (editando.tipo === "venta" ? "Corregir venta" : editando.tipo === "descuento" ? "Corregir descuento" : editando.tipo === "cargo" ? "Corregir cargo" : "Corregir pago") : actual.titulo;
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
@@ -239,13 +261,13 @@ export function DetalleCliente({
         </div>
 
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Tarjeta titulo="Saldo adeudado" valor={pesos(saldo)} nota={saldo > 0 ? "Pendiente de cobro" : "Al día"} destacada />
+          <Tarjeta titulo="Saldo adeudado" valor={pesos(saldo)} nota={saldo > 0 ? "Pendiente de cobro" : "Al día"} destacada alerta={saldo > 0} />
           <Tarjeta
             titulo="Compras"
             valor={pesos(compras)}
-            nota={`${cantidadVentas} ${cantidadVentas === 1 ? "remito" : "remitos"}${saldoAnterior ? ` · más saldo anterior ${pesos(saldoAnterior)}` : ""}`}
+            nota={`${cantidadVentas} ${cantidadVentas === 1 ? "remito" : "remitos"}${saldoAnterior ? ` · más saldo anterior ${pesos(saldoAnterior)}` : ""}${cargos ? ` · más cargos ${pesos(cargos)}` : ""}`}
           />
-          <Tarjeta titulo="Pagado" valor={pesos(pagos)} nota={`${cantidadPagos} ${cantidadPagos === 1 ? "pago" : "pagos"}`} />
+          <Tarjeta titulo="Pagado" valor={pesos(pagos)} nota={`${cantidadPagos} ${cantidadPagos === 1 ? "pago" : "pagos"}${descuentos ? ` · aparte, ${cantidadDescuentos} ${cantidadDescuentos === 1 ? "descuento" : "descuentos"} por ${pesos(descuentos)}` : ""}`} />
           <Tarjeta
             titulo="Último pago"
             valor={ultimoPago ? pesos(-efectoEnSaldo(ultimoPago)) : "—"}
@@ -291,16 +313,26 @@ export function DetalleCliente({
           <p className="mb-3 text-sm text-slate-600">
             Desde el {fechaAR(desde)}: compras <strong className="text-slate-900">{pesos(delPeriodo("venta"))}</strong> · pagos{" "}
             <strong className="text-emerald-700">{pesos(delPeriodo("pago"))}</strong>
+            {delPeriodo("descuento") > 0 && (
+              <>
+                {" "}
+                · descuentos <strong className="text-amber-700">{pesos(delPeriodo("descuento"))}</strong>
+              </>
+            )}
           </p>
         )}
 
         {editando?.tipo === "venta" && <FormVenta key={editando.id} clienteId={cliente.id} stock={stock} venta={editando} onListo={volver} />}
         {editando?.tipo === "pago" && <FormPago key={editando.id} clienteId={cliente.id} saldo={saldo} pago={editando} onListo={volver} />}
+        {editando?.tipo === "descuento" && <FormDescuento key={editando.id} clienteId={cliente.id} saldo={saldo} descuento={editando} onListo={volver} />}
+        {editando?.tipo === "cargo" && <FormCargo key={editando.id} clienteId={cliente.id} saldo={saldo} cargo={editando} onListo={volver} />}
         {!editando && vista === "historial" && (
           <Historial filas={visibles} filtrado={desde !== null} puedeCargar={puedeCargar} puedeBorrar={puedeBorrar} onEditar={setEditando} />
         )}
         {!editando && vista === "venta" && <FormVenta clienteId={cliente.id} stock={stock} onListo={volver} />}
         {!editando && vista === "pago" && <FormPago clienteId={cliente.id} saldo={saldo} onListo={volver} />}
+        {!editando && vista === "descuento" && <FormDescuento clienteId={cliente.id} saldo={saldo} onListo={volver} />}
+        {!editando && vista === "cargo" && <FormCargo clienteId={cliente.id} saldo={saldo} onListo={volver} />}
         {!editando && vista === "editar" && (
           <FormCliente
             cliente={cliente}

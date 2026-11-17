@@ -224,3 +224,24 @@ export const PrinterIcon = ({ className }: IconProps) => (
     <path d="M7 14h10v6H7z" />
   </Svg>
 );
+
+export const CheckIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </Svg>
+);
+
+export const WarningIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M12 4l9 16H3z" />
+    <path d="M12 10v4" />
+    <path d="M12 17.2h.01" />
+  </Svg>
+);
+
+export const EyeIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);

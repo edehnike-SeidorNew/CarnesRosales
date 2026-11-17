@@ -11,7 +11,7 @@ export default async function SinAccesoPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand to-brand-mid px-4 py-8">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-accent text-lg font-bold text-brand-deep">CR</span>
+        <img src="/logo.png" alt="Carnes Rosales" className="mx-auto h-20 w-20 object-contain" />
         <h1 className="mt-6 text-2xl font-bold text-brand">Tu cuenta todavía no tiene acceso</h1>
         <p className="mt-3 text-sm text-slate-600">
           Iniciaste sesión como <strong className="text-slate-900">{session.email}</strong>, pero esa cuenta no está habilitada.

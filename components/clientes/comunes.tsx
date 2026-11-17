@@ -38,12 +38,27 @@ export function Campo({ label, children, className = "" }: { label: string; chil
   );
 }
 
-export function Tarjeta({ titulo, valor, nota, destacada = false }: { titulo: string; valor: string; nota?: string; destacada?: boolean }) {
+/** `destacada` pinta la tarjeta de color: azul de la marca, o rojo con `alerta` (por ejemplo una deuda pendiente). */
+export function Tarjeta({
+  titulo,
+  valor,
+  nota,
+  destacada = false,
+  alerta = false,
+}: {
+  titulo: string;
+  valor: string;
+  nota?: string;
+  destacada?: boolean;
+  alerta?: boolean;
+}) {
+  // Rojo apagado (no puro) para que acompañe al azul violeta de la app sin chocar; el texto blanco se lee bien encima.
+  const color = alerta ? "border-[#b4424d] bg-[#b4424d] text-white" : "border-brand bg-brand text-white";
   return (
-    <div className={`rounded-2xl border p-4 ${destacada ? "border-brand bg-brand text-white" : "border-brand-border bg-white"}`}>
-      <p className={`text-xs font-semibold uppercase tracking-wide ${destacada ? "text-white/70" : "text-slate-500"}`}>{titulo}</p>
-      <p className={`mt-1 break-words text-lg font-bold tabular-nums sm:text-xl ${destacada ? "text-white" : "text-slate-900"}`}>{valor}</p>
-      {nota && <p className={`mt-0.5 text-xs ${destacada ? "text-white/70" : "text-slate-500"}`}>{nota}</p>}
+    <div className={`rounded-2xl border p-4 ${destacada || alerta ? color : "border-brand-border bg-white"}`}>
+      <p className={`text-xs font-semibold uppercase tracking-wide ${destacada || alerta ? "text-white/80" : "text-slate-500"}`}>{titulo}</p>
+      <p className={`mt-1 break-words text-lg font-bold tabular-nums sm:text-xl ${destacada || alerta ? "text-white" : "text-slate-900"}`}>{valor}</p>
+      {nota && <p className={`mt-0.5 text-xs ${destacada || alerta ? "text-white/80" : "text-slate-500"}`}>{nota}</p>}
     </div>
   );
 }

@@ -42,7 +42,11 @@ type Base = {
 export type Movimiento =
   | (Base & { tipo: "saldo_inicial"; importe: number })
   | (Base & { tipo: "venta"; items: ItemVenta[] })
-  | (Base & { tipo: "pago"; importe: number; medioPago: MedioPago | null });
+  | (Base & { tipo: "pago"; importe: number; medioPago: MedioPago | null })
+  /** Resta del saldo como un pago, pero no es plata cobrada (descuento, retiro de mercadería, comida...). */
+  | (Base & { tipo: "descuento"; importe: number; nota: string })
+  /** Suma al saldo como una venta, pero no es una venta de productos (préstamo, ajuste a favor...). */
+  | (Base & { tipo: "cargo"; importe: number; nota: string });
 
 type SinAuto<T> = T extends unknown ? Omit<T, "id" | "creadoPor"> : never;
 export type NuevoMovimiento = SinAuto<Movimiento>;
@@ -50,7 +54,9 @@ export type NuevoMovimiento = SinAuto<Movimiento>;
 export type CambiosMovimiento =
   | { tipo: "saldo_inicial"; importe: number }
   | { tipo: "venta"; fecha: string; comprobante: string; items: ItemVenta[] }
-  | { tipo: "pago"; fecha: string; comprobante: string; importe: number; medioPago: MedioPago | null };
+  | { tipo: "pago"; fecha: string; comprobante: string; importe: number; medioPago: MedioPago | null }
+  | { tipo: "descuento"; fecha: string; comprobante: string; importe: number; nota: string }
+  | { tipo: "cargo"; fecha: string; comprobante: string; importe: number; nota: string };
 export type NuevoCliente = Omit<Cliente, "id" | "numero">;
 
 /** Corte del catálogo, con su precio de lista por kilo (null = sin precio cargado). */
@@ -102,8 +108,8 @@ export const subtotalItem = (item: ItemVenta) => redondear(item.kilos * item.pre
 
 /** Lo que el movimiento suma (compra) o resta (pago) al saldo del cliente. */
 export function efectoEnSaldo(m: Movimiento): number {
-  if (m.tipo === "pago") return -m.importe;
-  if (m.tipo === "saldo_inicial") return m.importe;
+  if (m.tipo === "pago" || m.tipo === "descuento") return -m.importe;
+  if (m.tipo === "saldo_inicial" || m.tipo === "cargo") return m.importe;
   return redondear(m.items.reduce((total, item) => total + subtotalItem(item), 0));
 }
 

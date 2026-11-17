@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 
 type Modo = "login" | "signup" | "recover";
 
-const inputClass =
-  "mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-accent/50";
+// Ingreso oscuro: las etiquetas van en claro y los campos son blancos con el texto en negro (se lee bien).
+const etiqueta = "block text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70";
+const campo =
+  "login-campo mt-1.5 w-full rounded-md border border-white/20 bg-white px-3 py-2.5 text-[15px] text-slate-900 shadow-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/50";
 
 export function LoginForm({ mock, initialError = null }: { mock: boolean; initialError?: string | null }) {
   const router = useRouter();
@@ -77,12 +79,35 @@ export function LoginForm({ mock, initialError = null }: { mock: boolean; initia
         ? "Ingresando..."
         : "Iniciar sesión";
 
+  const pestana = (activa: boolean) =>
+    `relative pb-2 text-[19px] transition-colors ${
+      activa
+        ? "text-white after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded after:bg-brand-accent after:shadow-[0_0_12px_rgba(170,180,247,0.6)]"
+        : "text-white/55 hover:text-white"
+    }`;
+
   return (
     <div>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Pestañas (en modo demo sólo hay ingreso) */}
+      {recover ? (
+        <p className="mb-6 text-center text-[19px] text-white">Recuperar contraseña</p>
+      ) : (
+        <div className="mb-6 flex justify-center gap-6">
+          <button type="button" onClick={() => cambiarModo("login")} className={pestana(modo === "login")} aria-current={modo === "login" ? "page" : undefined}>
+            Iniciar sesión
+          </button>
+          {!mock && (
+            <button type="button" onClick={() => cambiarModo("signup")} className={pestana(signup)} aria-current={signup ? "page" : undefined}>
+              Crear cuenta
+            </button>
+          )}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
         {signup && (
           <div>
-            <label htmlFor="fullName" className="block text-sm font-semibold text-slate-900">
+            <label htmlFor="fullName" className={etiqueta}>
               Nombre y apellido
             </label>
             <input
@@ -92,19 +117,19 @@ export function LoginForm({ mock, initialError = null }: { mock: boolean; initia
               maxLength={120}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className={inputClass}
+              className={campo}
             />
           </div>
         )}
         <div>
-          <label htmlFor="email" className="block text-sm font-semibold text-slate-900">
+          <label htmlFor="email" className={etiqueta}>
             Email
           </label>
-          <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+          <input id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={campo} />
         </div>
         {!recover && (
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold text-slate-900">
+            <label htmlFor="password" className={etiqueta}>
               Contraseña
             </label>
             <input
@@ -115,11 +140,11 @@ export function LoginForm({ mock, initialError = null }: { mock: boolean; initia
               autoComplete={signup ? "new-password" : "current-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
+              className={campo}
             />
-            {signup && <p className="mt-1 text-xs text-slate-500">Mínimo 8 caracteres.</p>}
+            {signup && <p className="mt-1 text-xs text-white/50">Mínimo 8 caracteres.</p>}
             {!signup && !mock && (
-              <button type="button" onClick={() => cambiarModo("recover")} className="mt-2 text-xs font-semibold text-brand hover:underline">
+              <button type="button" onClick={() => cambiarModo("recover")} className="mt-2 block w-full text-right text-xs text-white/60 hover:text-white">
                 ¿Olvidaste tu contraseña?
               </button>
             )}
@@ -127,12 +152,12 @@ export function LoginForm({ mock, initialError = null }: { mock: boolean; initia
         )}
 
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-red-400">
             {error}
           </p>
         )}
         {info && (
-          <p role="status" className="text-sm text-emerald-700">
+          <p role="status" className="text-sm text-emerald-400">
             {info}
           </p>
         )}
@@ -140,17 +165,17 @@ export function LoginForm({ mock, initialError = null }: { mock: boolean; initia
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-md hover:bg-brand-hover disabled:opacity-60"
+          className="w-full rounded-md border border-white/75 bg-transparent px-4 py-3 text-xs uppercase tracking-[0.3em] text-white transition-colors hover:border-brand-hover hover:bg-brand-hover disabled:opacity-60"
         >
           {textoBoton}
         </button>
       </form>
 
-      {!mock && (
-        <p className="mt-3 text-center text-sm text-slate-600">
-          {modo === "login" ? "¿Te invitaron?" : "¿Ya tenés cuenta?"}{" "}
-          <button type="button" onClick={() => cambiarModo(modo === "login" ? "signup" : "login")} className="font-semibold text-brand hover:underline">
-            {modo === "login" ? "Creá tu cuenta" : "Iniciá sesión"}
+      {recover && (
+        <p className="mt-4 text-center text-sm text-white/60">
+          ¿Ya tenés cuenta?{" "}
+          <button type="button" onClick={() => cambiarModo("login")} className="font-semibold text-white hover:underline">
+            Iniciá sesión
           </button>
         </p>
       )}

@@ -4,7 +4,7 @@ import { decodeMockSession, MOCK_COOKIE_NAME } from "@/lib/mock/auth";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isMockMode } from "@/lib/supabase/env";
 
 function isPublicPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/api/auth") || pathname.startsWith("/_next") || pathname === "/favicon.ico";
+  return pathname === "/login" || pathname.startsWith("/api/auth") || pathname.startsWith("/_next") || ["/favicon.ico", "/icon.png", "/logo.png", "/logo.svg", "/login-parrilla.jpg", "/fondo-brasas.jpg", "/fondo-dorado.jpg"].includes(pathname);
 }
 
 /** Sin sesión: las páginas redirigen al login y las APIs responden 401 (no HTML). */

@@ -97,6 +97,12 @@ function ResumenCuenta({ cliente, movimientos, desde, hoy }: DatosResumen) {
             <Text style={s.etiqueta}>PAGOS</Text>
             <Text style={s.valor}>{pesos(sumar("pago"))}</Text>
           </View>
+          {sumar("descuento") > 0 && (
+            <View style={s.caja}>
+              <Text style={s.etiqueta}>DESCUENTOS</Text>
+              <Text style={s.valor}>{pesos(sumar("descuento"))}</Text>
+            </View>
+          )}
           <View style={s.cajaFuerte}>
             <Text style={[s.etiqueta, { color: "#cfd2ec" }]}>SALDO ADEUDADO A HOY</Text>
             <Text style={[s.valor, { color: "#ffffff" }]}>{pesos(saldo)}</Text>
@@ -120,7 +126,7 @@ function ResumenCuenta({ cliente, movimientos, desde, hoy }: DatosResumen) {
           const renglones =
             m.tipo === "venta"
               ? m.items.map((i) => ({ concepto: i.detalle, kilos: kilos(i.kilos), precio: pesos(i.precio), subtotal: subtotalItem(i) }))
-              : [{ concepto: m.tipo === "pago" ? `Pago (${etiquetaMedio(m.medioPago)})` : "Saldo anterior", kilos: "", precio: "", subtotal: 0 }];
+              : [{ concepto: m.tipo === "pago" ? `Pago (${etiquetaMedio(m.medioPago)})` : m.tipo === "descuento" ? `Descuento${m.nota ? ` - ${m.nota}` : ""}` : m.tipo === "cargo" ? `Cargo${m.nota ? ` - ${m.nota}` : ""}` : "Saldo anterior", kilos: "", precio: "", subtotal: 0 }];
           const importe = efectoEnSaldo(m);
           const ultimo = renglones.length - 1;
           return (

@@ -4,10 +4,21 @@
 
 begin;
 
+-- Aviso claro si ya se había corrido (o si quedó a medias): hay que limpiar antes.
+do $$
+begin
+  if to_regclass('public.clientes') is not null or exists (select 1 from pg_type where typname = 'tipo_movimiento') then
+    raise exception 'Este script ya se corrió (o quedó a medias). Corré primero 0000_limpiar.sql y después este.';
+  end if;
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Tipos
 -- ---------------------------------------------------------------------------
-create type public.tipo_movimiento as enum ('saldo_inicial', 'venta', 'pago');
+-- descuento: resta del saldo igual que un pago, pero no es plata cobrada (descuentos, retiros de mercadería,
+-- comida, etc.). Va aparte para que no se mezcle con lo cobrado.
+-- cargo: suma al saldo como una venta, pero no es una venta de productos (un préstamo, un ajuste a favor...).
+create type public.tipo_movimiento as enum ('saldo_inicial', 'venta', 'pago', 'descuento', 'cargo');
 create type public.medio_pago as enum ('efectivo', 'cheque', 'billetera_virtual');
 
 -- ---------------------------------------------------------------------------
@@ -52,15 +63,17 @@ create table public.movimientos (
   tipo        public.tipo_movimiento not null,
   -- N° de remito / factura (ventas) o de recibo (pagos).
   comprobante text not null default '',
-  -- Sólo para saldo inicial y pagos. El importe de una venta es la suma de sus ítems.
+  -- Sólo para saldo inicial, pagos y descuentos. El importe de una venta es la suma de sus ítems.
   importe     numeric(14, 2),
+  -- Sólo para descuentos y cargos: qué fue (por ejemplo "RETIRO ASADO 22,9 kg x 15.500").
+  nota        text not null default '',
   -- Sólo para pagos. Null = sin especificar (pagos anteriores a registrar este dato).
   medio_pago  public.medio_pago,
   created_at  timestamptz not null default now(),
 
   constraint movimientos_importe_segun_tipo check (
     (tipo = 'venta' and importe is null)
-    or (tipo = 'pago' and importe is not null and importe > 0)
+    or (tipo in ('pago', 'descuento', 'cargo') and importe is not null and importe > 0)
     or (tipo = 'saldo_inicial' and importe is not null)
   ),
   constraint movimientos_medio_solo_en_pagos check (medio_pago is null or tipo = 'pago')
@@ -105,6 +118,8 @@ select
   case m.tipo
     when 'venta' then coalesce((select sum(i.subtotal) from public.movimiento_items i where i.movimiento_id = m.id), 0)
     when 'pago' then -m.importe
+    when 'descuento' then -m.importe
+    when 'cargo' then m.importe
     else m.importe
   end as efecto
 from public.movimientos m;

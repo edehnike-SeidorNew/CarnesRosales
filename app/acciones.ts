@@ -173,6 +173,80 @@ export async function actualizarPago(id: string, datos: DatosPago): Promise<Resu
   });
 }
 
+type DatosDescuento = { fecha: string; comprobante: string; importe: number; nota: string };
+
+/** Descuento, retiro de mercadería o consumo: resta del saldo pero no cuenta como plata cobrada. */
+export async function registrarDescuento(clienteId: string, datos: DatosDescuento): Promise<Resultado> {
+  if (!texto(clienteId)) return error("Falta el cliente.");
+  if (!FECHA.test(datos?.fecha ?? "")) return error("Elegí la fecha.");
+  if (!positivo(datos.importe)) return error("Ingresá el importe del descuento.");
+  if (!texto(datos.nota)) return error("Contá de qué es el descuento (por ejemplo: retiro de asado).");
+  return ejecutar("cargar", async () => {
+    await repo().crearMovimiento({
+      clienteId,
+      fecha: datos.fecha,
+      tipo: "descuento",
+      comprobante: texto(datos.comprobante, 40),
+      importe: redondear(datos.importe),
+      nota: texto(datos.nota, 200),
+    });
+    return null;
+  });
+}
+
+export async function actualizarDescuento(id: string, datos: DatosDescuento): Promise<Resultado> {
+  if (!texto(id)) return error("Falta el movimiento.");
+  if (!FECHA.test(datos?.fecha ?? "")) return error("Elegí la fecha.");
+  if (!positivo(datos.importe)) return error("Ingresá el importe del descuento.");
+  if (!texto(datos.nota)) return error("Contá de qué es el descuento (por ejemplo: retiro de asado).");
+  return ejecutar("cargar", async () => {
+    await repo().actualizarMovimiento(id, {
+      tipo: "descuento",
+      fecha: datos.fecha,
+      comprobante: texto(datos.comprobante, 40),
+      importe: redondear(datos.importe),
+      nota: texto(datos.nota, 200),
+    });
+    return null;
+  });
+}
+
+/** Cargo que no es una venta de productos (préstamo, ajuste a favor...): suma al saldo del cliente. */
+export async function registrarCargo(clienteId: string, datos: DatosDescuento): Promise<Resultado> {
+  if (!texto(clienteId)) return error("Falta el cliente.");
+  if (!FECHA.test(datos?.fecha ?? "")) return error("Elegí la fecha.");
+  if (!positivo(datos.importe)) return error("Ingresá el importe del cargo.");
+  if (!texto(datos.nota)) return error("Contá de qué es el cargo (por ejemplo: préstamo).");
+  return ejecutar("cargar", async () => {
+    await repo().crearMovimiento({
+      clienteId,
+      fecha: datos.fecha,
+      tipo: "cargo",
+      comprobante: texto(datos.comprobante, 40),
+      importe: redondear(datos.importe),
+      nota: texto(datos.nota, 200),
+    });
+    return null;
+  });
+}
+
+export async function actualizarCargo(id: string, datos: DatosDescuento): Promise<Resultado> {
+  if (!texto(id)) return error("Falta el movimiento.");
+  if (!FECHA.test(datos?.fecha ?? "")) return error("Elegí la fecha.");
+  if (!positivo(datos.importe)) return error("Ingresá el importe del cargo.");
+  if (!texto(datos.nota)) return error("Contá de qué es el cargo (por ejemplo: préstamo).");
+  return ejecutar("cargar", async () => {
+    await repo().actualizarMovimiento(id, {
+      tipo: "cargo",
+      fecha: datos.fecha,
+      comprobante: texto(datos.comprobante, 40),
+      importe: redondear(datos.importe),
+      nota: texto(datos.nota, 200),
+    });
+    return null;
+  });
+}
+
 export async function eliminarMovimiento(id: string): Promise<Resultado> {
   if (!texto(id)) return error("Falta el movimiento.");
   return ejecutar("borrar", async () => {
@@ -230,6 +304,32 @@ export async function fijarPrecio(producto: string, precio: number | null): Prom
   if (precio !== null && !positivo(precio)) return error("El precio tiene que ser mayor a cero.");
   return ejecutar("cargar", async () => {
     await repo().fijarPrecio(nombre, precio === null ? null : redondear(precio));
+    return null;
+  });
+}
+
+/** Cambia el rubro y el precio de lista de un producto. Sólo el administrador. */
+export async function guardarProducto(producto: string, datos: { categoria: string; precio: number | null }): Promise<Resultado> {
+  const nombre = texto(producto, 80);
+  if (!nombre) return error("Falta el producto.");
+  if (datos.precio !== null && !positivo(datos.precio)) return error("El precio tiene que ser mayor a cero.");
+  return ejecutar("usuarios", async () => {
+    await repo().fijarCategoria(nombre, texto(datos.categoria, 60).replace(/\s+/g, " "));
+    await repo().fijarPrecio(nombre, datos.precio === null ? null : redondear(datos.precio));
+    return null;
+  });
+}
+
+/** Crea un producto con su rubro y su precio de lista. Sólo el administrador. */
+export async function crearProducto(datos: { nombre: string; categoria: string; precio: number | null }): Promise<Resultado> {
+  const nombre = texto(datos?.nombre, 80).replace(/\s+/g, " ");
+  if (!nombre) return error("Escribí el nombre del producto.");
+  if (datos.precio !== null && !positivo(datos.precio)) return error("El precio tiene que ser mayor a cero.");
+  return ejecutar("usuarios", async () => {
+    await repo().crearCorte(nombre);
+    const categoria = texto(datos.categoria, 60).replace(/\s+/g, " ");
+    if (categoria) await repo().fijarCategoria(nombre, categoria);
+    if (datos.precio !== null) await repo().fijarPrecio(nombre, redondear(datos.precio));
     return null;
   });
 }

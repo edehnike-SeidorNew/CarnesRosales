@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { puede, ROL_LABEL, type Rol } from "@/lib/auth/roles";
-import { CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, ShieldIcon, UsersIcon } from "./icons";
+import { CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, ReceiptIcon, ShieldIcon, TagIcon, UsersIcon } from "./icons";
 
 // Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
 type IconType = (props: { className?: string }) => ReactNode;
@@ -14,7 +14,9 @@ type NavItem = { href: string; label: string; Icon: IconType; soloAdmin?: boolea
 const SECTIONS: NavItem[] = [
   { href: "/", label: "Inicio", Icon: HomeIcon },
   { href: "/clientes", label: "Clientes", Icon: UsersIcon },
+  { href: "/remitos", label: "Remitos", Icon: ReceiptIcon },
   { href: "/pagos", label: "Pagos", Icon: CashIcon },
+  { href: "/productos", label: "Productos", Icon: TagIcon },
   { href: "/usuarios", label: "Usuarios", Icon: ShieldIcon, soloAdmin: true },
 ];
 
@@ -55,19 +57,28 @@ function suscribirMenu(avisar: () => void) {
   };
 }
 
-function Marca({ compacta = false }: { compacta?: boolean }) {
-  const monograma = (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent text-sm font-bold tracking-tight text-brand-deep">
-      CR
-    </span>
-  );
-  if (compacta) return <div className="flex justify-center">{monograma}</div>;
+/** Logo de la marca: grande en el menú abierto (ya trae el nombre), chico con el menú plegado y con nombre en la barra del celular. */
+function Marca({ variante }: { variante: "movil" | "menu" | "plegado" }) {
+  if (variante === "menu") {
+    return (
+      <div className="flex justify-center">
+        <img src="/logo.png" alt="Carnes Rosales" className="h-[108px] w-[108px] object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]" />
+      </div>
+    );
+  }
+  if (variante === "plegado") {
+    return (
+      <div className="flex justify-center">
+        <img src="/logo.png" alt="Carnes Rosales" className="h-10 w-10 shrink-0 object-contain" />
+      </div>
+    );
+  }
   return (
-    <div className="flex items-center gap-2.5">
-      {monograma}
+    <div className="flex items-center gap-2">
+      <img src="/logo.png" alt="Carnes Rosales" className="h-10 w-10 shrink-0 object-contain" />
       <div className="leading-tight">
-        <p className="text-base font-bold text-white">Carnes Rosales</p>
-        <p className="text-[11px] uppercase tracking-wider text-white/60">Cuentas corrientes</p>
+        <p className="text-[15px] font-bold text-white">Carnes Rosales</p>
+        <p className="text-[10px] uppercase tracking-wide text-white/60">Cuentas corrientes</p>
       </div>
     </div>
   );
@@ -120,7 +131,7 @@ export function AppShell({ email, rol, mock, children }: { email: string; rol: R
   return (
     <div className="flex min-h-dvh flex-col bg-brand-mid md:block md:h-screen md:overflow-hidden md:p-3">
       <div className="flex items-center justify-between px-4 py-3 md:hidden">
-        <Marca />
+        <Marca variante="movil" />
         <button
           type="button"
           aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
@@ -135,7 +146,7 @@ export function AppShell({ email, rol, mock, children }: { email: string; rol: R
       <div className="flex flex-1 flex-col md:h-full md:flex-row md:gap-3">
         <aside
           className={`${menuOpen ? "flex" : "hidden"} relative shrink-0 flex-col px-4 pb-4 text-white md:flex md:h-full md:p-0 md:transition-[width] md:duration-200 ${
-            colapsado ? "md:w-16" : "md:w-56"
+            colapsado ? "md:w-16" : "md:w-48"
           }`}
         >
           {/* Flecha para plegar o expandir el menú (sólo escritorio). */}
@@ -154,8 +165,8 @@ export function AppShell({ email, rol, mock, children }: { email: string; rol: R
             {colapsado ? <ChevronRightIcon className="h-5 w-5" /> : <ChevronLeftIcon className="h-5 w-5" />}
           </button>
 
-          <div className={`hidden pt-5 md:block ${colapsado ? "px-0 pb-14" : "px-3 pb-8"}`}>
-            <Marca compacta={colapsado} />
+          <div className={`hidden pt-5 md:block ${colapsado ? "px-0 pb-14" : "px-3 pb-6 pt-3"}`}>
+            <Marca variante={colapsado ? "plegado" : "menu"} />
           </div>
 
           <nav

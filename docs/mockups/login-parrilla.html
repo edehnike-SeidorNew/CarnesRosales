@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup de ingreso — Carnes Rosales</title>
+<style>
+  :root {
+    --fondo: #08090d;
+    --panel: #0b0c11;
+    --texto: #f4f4f6;
+    --tenue: rgba(244, 244, 246, 0.58);
+    --linea: rgba(244, 244, 246, 0.32);
+    --rojo: #d91e2b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: radial-gradient(1200px 700px at 50% 0%, #1a1014 0%, var(--fondo) 60%);
+    color: var(--texto);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  .tarjeta {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: min(1180px, 100%);
+    height: 720px;
+    overflow: hidden;
+    border-radius: 28px;
+    background: var(--panel);
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  /* ───────── Izquierda: el ingreso ───────── */
+  .ingreso {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px 72px;
+    background:
+      radial-gradient(520px 340px at 15% 0%, rgba(217, 30, 43, 0.20), transparent 70%),
+      radial-gradient(480px 420px at 90% 95%, rgba(255, 255, 255, 0.05), transparent 70%),
+      var(--panel);
+  }
+  /* "Humo" suave de fondo, como en la referencia. */
+  .ingreso::before, .ingreso::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .ingreso::before { width: 340px; height: 220px; left: -80px; bottom: 8%; background: rgba(255, 255, 255, 0.07); }
+  .ingreso::after { width: 280px; height: 200px; right: -40px; top: 18%; background: rgba(217, 30, 43, 0.12); }
+
+  .logo { width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0 10px 28px rgba(217, 30, 43, 0.35)); }
+  .marca { margin: 10px 0 0; text-align: center; line-height: 1.15; }
+  .marca b { display: block; font-size: 15px; letter-spacing: 0.32em; text-transform: uppercase; font-weight: 600; }
+  .marca span { display: block; margin-top: 4px; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--tenue); }
+
+  .formulario { width: 100%; max-width: 340px; margin-top: 26px; }
+
+  .pestanas { display: flex; justify-content: center; gap: 26px; margin-bottom: 26px; }
+  .pestanas a {
+    position: relative;
+    padding-bottom: 8px;
+    font-size: 19px;
+    color: var(--tenue);
+    text-decoration: none;
+  }
+  .pestanas a.activa { color: var(--texto); }
+  .pestanas a.activa::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--rojo);
+    box-shadow: 0 0 12px rgba(217, 30, 43, 0.7);
+  }
+
+  .campo { margin-bottom: 20px; }
+  .campo label { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--tenue); }
+  .campo input {
+    width: 100%;
+    margin-top: 4px;
+    padding: 8px 0 8px;
+    border: 0;
+    border-bottom: 1px solid var(--linea);
+    background: transparent;
+    color: var(--texto);
+    font: inherit;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .campo input:focus { border-bottom-color: var(--rojo); }
+
+  .olvide { display: block; margin: -4px 0 22px; text-align: right; font-size: 12px; color: var(--tenue); text-decoration: none; }
+  .olvide:hover { color: var(--texto); }
+
+  .boton {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid rgba(244, 244, 246, 0.75);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--texto);
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .boton:hover { background: var(--rojo); border-color: var(--rojo); }
+
+  .pie { margin-top: 26px; font-size: 11px; letter-spacing: 0.08em; color: var(--tenue); text-align: center; }
+
+  /* ───────── Derecha: la carne ───────── */
+  .foto {
+    position: relative;
+    background: #000 url("../../public/login-parrilla.jpg") center 38% / cover no-repeat;
+  }
+  /* Empalme con el panel de la izquierda y viñeta abajo. */
+  .foto::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 42%;
+    background: linear-gradient(90deg, var(--panel) 0%, rgba(11, 12, 17, 0.55) 45%, transparent 100%);
+  }
+  .foto::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 38%;
+    background: linear-gradient(0deg, rgba(8, 9, 13, 0.85), transparent);
+  }
+  .leyenda { position: absolute; z-index: 1; left: 44px; bottom: 34px; }
+  .leyenda b { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 600; letter-spacing: 0.02em; }
+  .leyenda span { display: block; margin-top: 4px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--tenue); }
+
+  /* ───────── Celular: la foto pasa arriba, más baja ───────── */
+  @media (max-width: 860px) {
+    .tarjeta { grid-template-columns: 1fr; grid-template-rows: 230px auto; height: auto; }
+    .foto { order: -1; background-position: center 55%; }
+    .foto::before { inset: auto 0 0 0; width: auto; height: 60%; background: linear-gradient(0deg, var(--panel), transparent); }
+    .foto::after, .leyenda { display: none; }
+    .ingreso { padding: 0 28px 36px; margin-top: -90px; }
+    .logo { width: 140px; height: 140px; }
+  }
+</style>
+</head>
+<body>
+  <main class="tarjeta">
+    <section class="ingreso">
+      <img class="logo" src="../../public/logo.png" alt="Carnes Rosales" />
+      <p class="marca"><b>Carnes Rosales</b><span>Cuentas corrientes</span></p>
+
+      <form class="formulario" onsubmit="return false">
+        <nav class="pestanas" aria-label="Acceso">
+          <a class="activa" href="#">Iniciar sesión</a>
+          <a href="#">Crear cuenta</a>
+        </nav>
+
+        <div class="campo">
+          <label for="email">Email</label>
+          <input id="email" type="email" autocomplete="email" />
+        </div>
+        <div class="campo">
+          <label for="clave">Contraseña</label>
+          <input id="clave" type="password" autocomplete="current-password" />
+        </div>
+        <a class="olvide" href="#">¿Olvidaste tu contraseña?</a>
+
+        <button class="boton" type="submit">Ingresar</button>
+        <p class="pie">Calidad y tradición · San Bernardo</p>
+      </form>
+    </section>
+
+    <aside class="foto" aria-hidden="true">
+      <div class="leyenda">
+        <b>Calidad y tradición</b>
+        <span>Carnes Rosales</span>
+      </div>
+    </aside>
+  </main>
+</body>
+</html>

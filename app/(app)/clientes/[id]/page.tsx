@@ -7,9 +7,10 @@ import { stockPorProducto } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ vista?: string }> }) {
   const session = await exigirAcceso();
   const { id } = await params;
+  const { vista } = await searchParams;
   const datos = await repo().obtenerDatos();
   const cliente = datos.clientes.find((c) => c.id === id);
 
@@ -31,6 +32,8 @@ export default async function ClientePage({ params }: { params: Promise<{ id: st
       stock={stockPorProducto(datos)}
       puedeCargar={puede(session.rol, "cargar")}
       puedeBorrar={puede(session.rol, "borrar")}
+      // Desde Remitos > Nuevo remito se abre directo el formulario de venta.
+      vistaInicial={vista === "venta" || vista === "pago" || vista === "descuento" || vista === "cargo" ? vista : undefined}
     />
   );
 }

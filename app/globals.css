@@ -44,3 +44,29 @@ input::placeholder,
 textarea::placeholder {
   color: #64748b;
 }
+
+/* Modal de confirmación y avisos (components/ui/Notificaciones.tsx). */
+@keyframes cr-fundido {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cr-aparecer {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cr-bajar {
+  from { opacity: 0; transform: translateY(-14px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cr-anim { animation: none !important; }
+}
+
+/* Ingreso: campos blancos con texto negro, también cuando el navegador los autocompleta. */
+.login-campo:-webkit-autofill,
+.login-campo:-webkit-autofill:hover,
+.login-campo:-webkit-autofill:focus {
+  -webkit-text-fill-color: #0f172a;
+  caret-color: #0f172a;
+  box-shadow: 0 0 0 1000px #ffffff inset;
+}
