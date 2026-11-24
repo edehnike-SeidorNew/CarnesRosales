@@ -7,15 +7,20 @@ import { eliminarMovimiento } from "@/app/acciones";
 import { FiltroPeriodo, Tarjeta, Vacio } from "@/components/clientes/comunes";
 import { useAccion } from "@/components/comun/useAccion";
 import { useNotificaciones } from "@/components/ui/Notificaciones";
-import { DownloadIcon, EyeIcon, PlusIcon, PrinterIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
+import { DownloadIcon, EyeIcon, PencilIcon, PlusIcon, PrinterIcon, ReceiptIcon, TrashIcon } from "@/components/layout/icons";
+import { BotonWhatsApp } from "@/components/remitos/BotonWhatsApp";
 import { Autocompletar } from "@/components/ui/Autocompletar";
-import { BOTON, BOTON_SECUNDARIO, fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
+import { useFiltroPeriodo } from "@/components/comun/useFiltroPeriodo";
+import { BOTON, BOTON_SECUNDARIO, describirRango, enPeriodo, fechaAR, kilos, pesos, type Periodo } from "@/lib/formato";
 import { kilosDeRemito, resumenDeProductos, totalDeRemito, type Remito } from "@/lib/remito";
 import { redondear, type Cliente, type Movimiento } from "@/lib/tipos";
 
 const EN_PERIODO: Record<Periodo, string> = {
   todo: "en total",
+  hoy: "hoy",
+  fecha: "ese día",
   semana: "esta semana",
+  semanaAnterior: "desde la semana anterior",
   mes: "este mes",
   trimestre: "este trimestre",
   semestre: "este semestre",
@@ -81,16 +86,16 @@ export function RemitosPanel({
 }) {
   const { pendiente, error, correr } = useAccion();
   const { confirmar } = useNotificaciones();
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const { periodo, fecha, setPeriodo, setFecha, desde, hasta } = useFiltroPeriodo("mes");
   const [busqueda, setBusqueda] = useState("");
   const [creando, setCreando] = useState(false);
 
   const nombreDe = new Map(clientes.map((c) => [c.id, c.nombreFantasia]));
-  const desde = inicioDePeriodo(periodo);
+  const clientePorId = new Map(clientes.map((c) => [c.id, c]));
 
   const remitos = movimientos
     .map((m, orden) => ({ m, orden }))
-    .filter((x): x is { m: Remito; orden: number } => x.m.tipo === "venta" && (!desde || x.m.fecha >= desde))
+    .filter((x): x is { m: Remito; orden: number } => x.m.tipo === "venta" && enPeriodo(x.m.fecha, desde, hasta))
     // Del más nuevo al más viejo.
     .sort((a, b) => b.m.fecha.localeCompare(a.m.fecha) || b.orden - a.orden)
     .map(({ m }) => m);
@@ -121,7 +126,7 @@ export function RemitosPanel({
     <div>
       <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-2">
         <h1 className="text-2xl font-bold text-brand">Remitos</h1>
-        <FiltroPeriodo periodo={periodo} onChange={setPeriodo} />
+        <FiltroPeriodo periodo={periodo} onChange={setPeriodo} fecha={fecha} onFecha={setFecha} />
         {puedeCargar && !creando && (
           <button type="button" onClick={() => setCreando(true)} className={`${BOTON} ml-auto !px-3 !py-1.5`}>
             <PlusIcon className="h-4 w-4" />
@@ -156,7 +161,7 @@ export function RemitosPanel({
       ) : (
         <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${pendiente ? "opacity-60" : ""}`}>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="tabla-cards w-full min-w-[820px] text-left text-sm">
               <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
                 <tr>
                   <th className={`${TD} font-semibold`}>Fecha</th>
@@ -165,27 +170,27 @@ export function RemitosPanel({
                   <th className={`${TD} font-semibold`}>Productos</th>
                   <th className={`${TD} text-right font-semibold`}>Kilos</th>
                   <th className={`${TD} text-right font-semibold`}>Total</th>
-                  <th className="w-36" />
+                  <th className="w-48" />
                 </tr>
               </thead>
               <tbody>
                 {visibles.map((r) => (
                   <tr key={r.id} className="border-t border-brand-border hover:bg-slate-50">
-                    <td className={`${TD} whitespace-nowrap text-slate-800`}>{fechaAR(r.fecha)}</td>
-                    <td className={`${TD} max-w-[7rem] truncate text-slate-600`} title={r.comprobante || undefined}>
+                    <td data-label="Fecha" className={`${TD} titulo whitespace-nowrap text-slate-800`}>{fechaAR(r.fecha)}</td>
+                    <td data-label="N° remito" className={`${TD} max-w-[7rem] truncate text-slate-600`} title={r.comprobante || undefined}>
                       {r.comprobante || <span className="text-slate-400">—</span>}
                     </td>
-                    <td className={`${TD} max-w-[14rem] truncate font-medium text-slate-900`}>
+                    <td data-label="Cliente" className={`${TD} max-w-[14rem] truncate font-medium text-slate-900`}>
                       <Link href={`/clientes/${r.clienteId}`} className="hover:text-brand hover:underline" title="Abrir la cuenta del cliente">
                         {nombreDe.get(r.clienteId) ?? "(cliente eliminado)"}
                       </Link>
                     </td>
-                    <td className={`${TD} max-w-[16rem] truncate text-slate-600`} title={resumenDeProductos(r)}>
+                    <td data-label="Productos" className={`${TD} max-w-[16rem] truncate text-slate-600`} title={resumenDeProductos(r)}>
                       {resumenDeProductos(r)}
                     </td>
-                    <td className={`${TD} whitespace-nowrap text-right tabular-nums text-slate-800`}>{kilos(kilosDeRemito(r))}</td>
-                    <td className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums text-slate-900`}>{pesos(totalDeRemito(r))}</td>
-                    <td className="whitespace-nowrap pr-2 text-right">
+                    <td data-label="Kilos" className={`${TD} whitespace-nowrap text-right tabular-nums text-slate-800`}>{kilos(kilosDeRemito(r))}</td>
+                    <td data-label="Total" className={`${TD} whitespace-nowrap text-right font-semibold tabular-nums text-slate-900`}>{pesos(totalDeRemito(r))}</td>
+                    <td className="acciones whitespace-nowrap pr-2 text-right">
                       <Link href={`/remitos/${r.id}`} className={ICONO} title="Ver remito" aria-label="Ver remito">
                         <EyeIcon className="h-4 w-4" />
                       </Link>
@@ -195,6 +200,12 @@ export function RemitosPanel({
                       <a href={`/api/remitos/${r.id}`} className={ICONO} title="Descargar PDF" aria-label="Descargar PDF del remito">
                         <DownloadIcon className="h-4 w-4" />
                       </a>
+                      {clientePorId.get(r.clienteId) && <BotonWhatsApp remito={r} cliente={clientePorId.get(r.clienteId)!} variante="icono" />}
+                      {puedeCargar && (
+                        <Link href={`/clientes/${r.clienteId}?editar=${r.id}`} className={ICONO} title="Editar remito" aria-label="Editar remito">
+                          <PencilIcon className="h-4 w-4" />
+                        </Link>
+                      )}
                       {puedeBorrar && (
                         <button
                           type="button"

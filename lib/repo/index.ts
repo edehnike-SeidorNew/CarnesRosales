@@ -23,6 +23,8 @@ export interface Repo {
   eliminarCliente(id: string): Promise<void>;
 
   crearMovimiento(movimiento: NuevoMovimiento): Promise<void>;
+  /** Varios pagos de un mismo cobro (uno por medio de pago) en una sola operación: se guardan todos o ninguno. */
+  crearPagos(pagos: NuevoMovimiento[]): Promise<void>;
   actualizarMovimiento(id: string, cambios: CambiosMovimiento): Promise<void>;
   eliminarMovimiento(id: string): Promise<void>;
 

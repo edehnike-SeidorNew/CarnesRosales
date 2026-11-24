@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Autor, FiltroPeriodo, Tarjeta } from "@/components/clientes/comunes";
 import { CashIcon } from "@/components/layout/icons";
 import { PanelOpciones } from "@/components/layout/PanelOpciones";
-import { CAMPO, fechaAR, inicioDePeriodo, pesos, type Periodo } from "@/lib/formato";
+import { useFiltroPeriodo } from "@/components/comun/useFiltroPeriodo";
+import { CAMPO, describirRango, enPeriodo, fechaAR, pesos, type Periodo } from "@/lib/formato";
 import { etiquetaMedio, MEDIOS_PAGO, redondear, type Cliente, type MedioPago, type Movimiento } from "@/lib/tipos";
 
 type FiltroMedio = "todos" | MedioPago | "sin";
@@ -18,7 +19,10 @@ const OPCIONES: { id: FiltroMedio; label: string; Icon: typeof CashIcon }[] = [
 
 const EN_PERIODO: Record<Periodo, string> = {
   todo: "en total",
+  hoy: "hoy",
+  fecha: "ese día",
   semana: "esta semana",
+  semanaAnterior: "desde la semana anterior",
   mes: "este mes",
   trimestre: "este trimestre",
   semestre: "este semestre",
@@ -29,15 +33,14 @@ const TD = "px-4 py-3";
 
 /** Todos los pagos recibidos, de todos los clientes, para cerrar la caja. */
 export function PagosPanel({ clientes, movimientos }: { clientes: Cliente[]; movimientos: Movimiento[] }) {
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const { periodo, fecha, setPeriodo, setFecha, desde, hasta } = useFiltroPeriodo("mes");
   const [medio, setMedio] = useState<FiltroMedio>("todos");
   const [busqueda, setBusqueda] = useState("");
 
   const nombreDe = new Map(clientes.map((c) => [c.id, c.nombreFantasia]));
-  const desde = inicioDePeriodo(periodo);
   const delPeriodo = movimientos
     .map((m, orden) => ({ m, orden }))
-    .filter((x): x is { m: Extract<Movimiento, { tipo: "pago" }>; orden: number } => x.m.tipo === "pago" && (!desde || x.m.fecha >= desde))
+    .filter((x): x is { m: Extract<Movimiento, { tipo: "pago" }>; orden: number } => x.m.tipo === "pago" && enPeriodo(x.m.fecha, desde, hasta))
     // Del más nuevo al más viejo.
     .sort((a, b) => b.m.fecha.localeCompare(a.m.fecha) || b.orden - a.orden)
     .map(({ m }) => m);
@@ -58,9 +61,9 @@ export function PagosPanel({ clientes, movimientos }: { clientes: Cliente[]; mov
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-2xl font-bold text-brand">Pagos</h1>
-          <FiltroPeriodo periodo={periodo} onChange={setPeriodo} />
+          <FiltroPeriodo periodo={periodo} onChange={setPeriodo} fecha={fecha} onFecha={setFecha} />
         </div>
-        <p className="mb-6 text-sm text-slate-500">Pagos recibidos de todos los clientes{desde ? ` · desde el ${fechaAR(desde)}` : ""}</p>
+        <p className="mb-6 text-sm text-slate-500">Pagos recibidos de todos los clientes{desde ? ` · ${describirRango(desde, hasta)}` : ""}</p>
 
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Tarjeta
@@ -96,7 +99,7 @@ export function PagosPanel({ clientes, movimientos }: { clientes: Cliente[]; mov
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="tabla-cards w-full min-w-[640px] text-left text-sm">
                 <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
                   <tr>
                     <th className={`${TD} font-semibold`}>Fecha</th>
@@ -110,16 +113,16 @@ export function PagosPanel({ clientes, movimientos }: { clientes: Cliente[]; mov
                 <tbody className="divide-y divide-brand-border">
                   {visibles.map((m) => (
                     <tr key={m.id}>
-                      <td className={`${TD} whitespace-nowrap text-slate-800`}>{fechaAR(m.fecha)}</td>
-                      <td className={TD}>
+                      <td data-label="Fecha" className={`${TD} titulo whitespace-nowrap text-slate-800`}>{fechaAR(m.fecha)}</td>
+                      <td data-label="Cliente" className={TD}>
                         <Link href={`/clientes/${m.clienteId}`} className="font-semibold text-slate-900 hover:text-brand hover:underline">
                           {nombreDe.get(m.clienteId) ?? "(cliente eliminado)"}
                         </Link>
                       </td>
-                      <td className={`${TD} text-slate-500`}>{m.comprobante || "—"}</td>
-                      <td className={`${TD} ${m.medioPago ? "text-slate-800" : "text-slate-400"}`}>{etiquetaMedio(m.medioPago)}</td>
-                      <td className={`${TD} text-right font-semibold tabular-nums text-emerald-700`}>{pesos(m.importe)}</td>
-                      <td className={`${TD} text-xs text-slate-500`}>
+                      <td data-label="N° recibo" className={`${TD} text-slate-500`}>{m.comprobante || "—"}</td>
+                      <td data-label="Medio de pago" className={`${TD} ${m.medioPago ? "text-slate-800" : "text-slate-400"}`}>{etiquetaMedio(m.medioPago)}</td>
+                      <td data-label="Importe" className={`${TD} text-right font-semibold tabular-nums text-emerald-700`}>{pesos(m.importe)}</td>
+                      <td data-label="Cargó" className={`${TD} text-xs text-slate-500`}>
                         <Autor email={m.creadoPor} />
                       </td>
                     </tr>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession, tieneAcceso } from "@/lib/auth/session";
-import { hoyISO, inicioDePeriodo, PERIODOS, type Periodo } from "@/lib/formato";
+import { finDePeriodo, hoyISO, inicioDePeriodo, PERIODOS, type Periodo } from "@/lib/formato";
 import { generarResumenPdf } from "@/lib/pdf/resumenCuenta";
 import { repo } from "@/lib/repo";
 
@@ -20,6 +20,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   // ?ver=1 lo abre en el navegador (para imprimir) en lugar de descargarlo.
   const enLinea = parametros.get("ver") === "1";
   const periodo: Periodo = PERIODOS.some((p) => p.id === pedido) ? (pedido as Periodo) : "todo";
+  // ?fecha=AAAA-MM-DD acompaña a ?periodo=fecha (un día puntual).
+  const diaPedido = parametros.get("fecha") ?? "";
+  const dia = /^\d{4}-\d{2}-\d{2}$/.test(diaPedido) ? diaPedido : undefined;
 
   const movimientos = datos.movimientos
     .map((m, orden) => ({ m, orden }))
@@ -30,7 +33,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     )
     .map(({ m }) => m);
 
-  const pdf = await generarResumenPdf({ cliente, movimientos, desde: inicioDePeriodo(periodo), hoy: hoyISO() });
+  const pdf = await generarResumenPdf({ cliente, movimientos, desde: inicioDePeriodo(periodo, dia), hasta: finDePeriodo(periodo, dia), hoy: hoyISO() });
 
   // Nombre de archivo sin acentos ni símbolos, para que descargue bien en cualquier sistema.
   const nombre = cliente.nombreFantasia

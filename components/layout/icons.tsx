@@ -245,3 +245,10 @@ export const EyeIcon = ({ className }: IconProps) => (
     <circle cx="12" cy="12" r="3" />
   </Svg>
 );
+
+export const WhatsAppIcon = ({ className }: IconProps) => (
+  <Svg className={className}>
+    <path d="M20 12a8 8 0 1 1-3.3-6.5L20.5 4l-1.1 3.6A7.9 7.9 0 0 1 20 12z" />
+    <path d="M9.2 8.8c.2 2.4 2.6 4.8 5 5l1.3-1.3-1.9-1-.9.7c-.9-.4-1.6-1.1-2-2l.7-.9-1-1.9z" />
+  </Svg>
+);

@@ -62,6 +62,118 @@ textarea::placeholder {
   .cr-anim { animation: none !important; }
 }
 
+/*
+ * Tablas en celular: cada fila pasa a ser una card y cada celda muestra "Nombre: valor" (el nombre sale de data-label).
+ * Así se baja con el dedo en vez de scrollear hacia los costados. En pantallas grandes no cambia nada.
+ * Con .tabla-cards-grupo la card es el tbody (un movimiento con varios renglones); si no, cada tr.
+ */
+/* Celdas que sólo se ven en celular (ver .tabla-cards). */
+.solo-celular {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .tabla-cards {
+    min-width: 0;
+  }
+  .tabla-cards,
+  .tabla-cards tbody,
+  .tabla-cards tr,
+  .tabla-cards td {
+    display: block;
+  }
+  .tabla-cards thead {
+    display: none;
+  }
+  .tabla-cards tbody {
+    padding: 0.5rem 0.5rem 0;
+  }
+  .tabla-cards tr {
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--brand-border);
+    border-radius: 0.75rem;
+    padding: 0.375rem 0;
+    background: #fff;
+  }
+  .tabla-cards td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    max-width: none;
+    width: auto;
+    padding: 0.25rem 0.875rem;
+    text-align: right;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  .tabla-cards td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: #64748b;
+    text-align: left;
+  }
+  .tabla-cards td.solo-escritorio {
+    display: none;
+  }
+  .tabla-cards td.solo-celular {
+    display: flex;
+  }
+  .tabla-cards td:empty {
+    display: none;
+  }
+  .tabla-cards td.acciones {
+    justify-content: flex-end;
+    margin-top: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--brand-border);
+  }
+  /* Primera celda (fecha o nombre) como título de la card. */
+  .tabla-cards td.titulo {
+    font-weight: 600;
+  }
+  /* Celda con varias líneas (usuario + nombre): se apila en vez de ir en fila. */
+  .tabla-cards td.bloque {
+    display: block;
+    text-align: left;
+  }
+  .tabla-cards td.titulo::before {
+    display: none;
+  }
+  /* Un movimiento con varios productos: una sola card, con los renglones separados. */
+  .tabla-cards-grupo tbody {
+    margin: 0.5rem 0.5rem 0;
+    padding: 0.375rem 0;
+    border: 1px solid var(--brand-border);
+    border-radius: 0.75rem;
+    background: #fff;
+    overflow: hidden;
+  }
+  .tabla-cards-grupo tr {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0.25rem 0;
+  }
+  /* Historial: se muestran todas las columnas; las vacías llevan un guion. Fecha, comprobante y medio van en el primer renglón y los totales en el último. */
+  .tabla-cards-grupo td:empty:not(.acciones):not(.solo-escritorio) {
+    display: flex;
+  }
+  .tabla-cards-grupo td:empty:not(.acciones)::after {
+    content: "—";
+    color: #94a3b8;
+  }
+  .tabla-cards-grupo tr:not(:first-child) td.g-inicio,
+  .tabla-cards-grupo tr:not(:last-child) td.g-fin {
+    display: none !important;
+  }
+  .tabla-cards-grupo tr + tr {
+    border-top: 1px dashed var(--brand-border);
+  }
+}
+
 /* Ingreso: campos blancos con texto negro, también cuando el navegador los autocompleta. */
 .login-campo:-webkit-autofill,
 .login-campo:-webkit-autofill:hover,

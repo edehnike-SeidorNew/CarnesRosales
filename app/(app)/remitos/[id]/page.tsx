@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { BotonEliminarRemito } from "@/components/remitos/BotonEliminarRemito";
+import { BotonWhatsApp } from "@/components/remitos/BotonWhatsApp";
 import { RemitoVista } from "@/components/remitos/RemitoVista";
-import { ChevronLeftIcon, DownloadIcon, PrinterIcon, UsersIcon } from "@/components/layout/icons";
+import { ChevronLeftIcon, DownloadIcon, PencilIcon, PrinterIcon, UsersIcon } from "@/components/layout/icons";
 import { puede } from "@/lib/auth/roles";
 import { exigirAcceso } from "@/lib/auth/session";
 import { BOTON, BOTON_SECUNDARIO } from "@/lib/formato";
@@ -44,6 +45,13 @@ export default async function RemitoPage({ params }: { params: Promise<{ id: str
             <DownloadIcon className="h-4 w-4" />
             Descargar PDF
           </a>
+          <BotonWhatsApp remito={remito} cliente={cliente} variante="boton" />
+          {puede(session.rol, "cargar") && (
+            <Link href={`/clientes/${cliente.id}?editar=${remito.id}`} className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}>
+              <PencilIcon className="h-4 w-4" />
+              Editar
+            </Link>
+          )}
           <Link href={`/clientes/${cliente.id}`} className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}>
             <UsersIcon className="h-4 w-4" />
             Ver cuenta del cliente

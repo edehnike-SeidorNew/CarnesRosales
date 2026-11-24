@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { actualizarCargo, actualizarDescuento, actualizarPago, actualizarVenta, registrarCargo, registrarDescuento, registrarPago, registrarVenta } from "@/app/acciones";
+import { actualizarCargo, actualizarDescuento, actualizarPago, actualizarVenta, registrarCargo, registrarDescuento, registrarPagos, registrarVenta } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
 import { PlusIcon, TrashIcon } from "@/components/layout/icons";
 import { SelectorProducto } from "@/components/ui/SelectorProducto";
 import { CampoNumero } from "@/components/ui/CampoNumero";
 import { DateField } from "@/components/ui/DateField";
+import { Select } from "@/components/ui/Select";
 import { aCampo, aNumero, BOTON, BOTON_SECUNDARIO, CAMPO, hoyISO, kilos as formatoKilos, pesos } from "@/lib/formato";
 import { MEDIOS_PAGO, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
-import { Campo, SelectorMedio } from "./comunes";
+import { Campo } from "./comunes";
 
 /** `libre`: el producto se escribe a mano (personalizado), sin lista ni precio sugerido. */
 type Renglon = { detalle: string; kilos: string; precio: string; libre?: boolean };
@@ -203,41 +204,99 @@ export function FormVenta({
 }
 
 /** Pago (recibo): resta del saldo del cliente y registra con qué medio pagó. Con `pago`, lo corrige. */
+/** Una parte del cobro: cuánto entró y por qué medio. */
+type ParteCobro = { medioPago: MedioPago; importe: string };
+
+/**
+ * Pago del cliente. Al registrar se puede dividir el cobro en varios medios (efectivo, cheque, billetera virtual...): cada
+ * renglón es un pago con su medio y su importe, y todos comparten la fecha y el N° de recibo. Con `pago`, corrige uno solo.
+ */
 export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: number; pago?: Extract<Movimiento, { tipo: "pago" }> }) {
   const [fecha, setFecha] = useState(pago?.fecha ?? hoyISO);
   const [comprobante, setComprobante] = useState(pago?.comprobante ?? "");
-  const [importe, setImporte] = useState(pago ? aCampo(pago.importe) : "");
-  const [medioPago, setMedioPago] = useState<MedioPago>(pago?.medioPago ?? "efectivo");
+  const [partes, setPartes] = useState<ParteCobro[]>([{ medioPago: pago?.medioPago ?? "efectivo", importe: pago ? aCampo(pago.importe) : "" }]);
   const { pendiente, error, setError, correr } = useAccion();
 
-  const monto = numero(importe) || 0;
+  const montos = partes.map((p) => numero(p.importe) || 0);
+  const monto = Math.round(montos.reduce((t, m) => t + m, 0) * 100) / 100;
   // Al corregir, el saldo actual ya tiene descontado este pago.
   const saldoSinEste = saldo + (pago?.importe ?? 0);
+  const opcionesMedio = MEDIOS_PAGO.map((m) => ({ value: m.id, label: m.label }));
+
+  const cambiarParte = (i: number, cambios: Partial<ParteCobro>) => setPartes((antes) => antes.map((p, k) => (k === i ? { ...p, ...cambios } : p)));
+  const agregarParte = () => {
+    // El nuevo renglón arranca con el primer medio que todavía no se usó.
+    const libre = MEDIOS_PAGO.find((m) => !partes.some((p) => p.medioPago === m.id))?.id ?? "efectivo";
+    setPartes((antes) => [...antes, { medioPago: libre, importe: "" }]);
+  };
+  const quitarParte = (i: number) => setPartes((antes) => antes.filter((_, k) => k !== i));
 
   function enviar(e: FormEvent) {
     e.preventDefault();
     if (!fecha) return setError("Elegí la fecha.");
-    if (!(monto > 0)) return setError("Ingresá el importe del pago.");
-    const datos = { fecha, comprobante, importe: monto, medioPago };
-    correr(() => (pago ? actualizarPago(pago.id, datos) : registrarPago(clienteId, datos)), onListo, pago ? "Pago corregido" : "Pago registrado");
+    if (montos.some((m) => !(m > 0))) return setError(partes.length > 1 ? "Ingresá el importe de cada medio de pago, o quitá el renglón que no uses." : "Ingresá el importe del pago.");
+    if (pago) {
+      const datos = { fecha, comprobante, importe: montos[0], medioPago: partes[0].medioPago };
+      return correr(() => actualizarPago(pago.id, datos), onListo, "Pago corregido");
+    }
+    const datos = { fecha, comprobante, partes: partes.map((p, i) => ({ importe: montos[i], medioPago: p.medioPago })) };
+    correr(() => registrarPagos(clienteId, datos), onListo, partes.length > 1 ? `${partes.length} pagos registrados` : "Pago registrado");
   }
 
   return (
     <form onSubmit={enviar} className="rounded-lg border border-brand-border bg-white p-5">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Campo label="Fecha">
           <DateField value={fecha} onChange={setFecha} />
         </Campo>
         <Campo label="N° de recibo">
           <input className={CAMPO} value={comprobante} onChange={(e) => setComprobante(e.target.value)} inputMode="numeric" />
         </Campo>
-        <Campo label="Importe">
-          <CampoNumero value={importe} onChange={setImporte} autoFocus />
-        </Campo>
       </div>
 
       <div className="mt-5">
-        <SelectorMedio opciones={MEDIOS_PAGO} valor={medioPago} onChange={setMedioPago} />
+        <p className="mb-2 text-sm font-medium text-slate-700">{pago ? "Medio de pago e importe" : "Medios de pago e importes"}</p>
+        <div className="space-y-2">
+          {partes.map((parte, i) => (
+            <div key={i} className="grid grid-cols-[1fr_auto] items-center gap-2 sm:grid-cols-[14rem_1fr_auto]">
+              <Select
+                value={parte.medioPago}
+                onChange={(v) => cambiarParte(i, { medioPago: v })}
+                opciones={opcionesMedio}
+                ariaLabel={`Medio de pago ${i + 1}`}
+                className="w-full"
+              />
+              <div className="col-span-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                <CampoNumero value={parte.importe} onChange={(v) => cambiarParte(i, { importe: v })} ariaLabel={`Importe ${i + 1}`} placeholder="Importe" autoFocus={i === 0} />
+              </div>
+              {partes.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => quitarParte(i)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 bg-white text-red-700 hover:bg-red-50 sm:col-start-3 sm:row-start-1"
+                  title="Quitar este medio de pago"
+                  aria-label={`Quitar el medio de pago ${i + 1}`}
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              ) : (
+                <span className="hidden h-9 w-9 sm:col-start-3 sm:row-start-1 sm:block" />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {!pago && partes.length < 10 && (
+          <button type="button" onClick={agregarParte} className={`${BOTON_SECUNDARIO} mt-3 !px-3 !py-1.5`}>
+            <PlusIcon className="h-4 w-4" />
+            Agregar otro medio de pago
+          </button>
+        )}
+        {partes.length > 1 && (
+          <p className="mt-2 text-xs text-slate-500">
+            Se guarda un pago por cada medio, todos con esta fecha y este N° de recibo. Total del cobro: <strong className="text-slate-800">{pesos(monto)}</strong>.
+          </p>
+        )}
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -255,7 +314,7 @@ export function FormPago({ clienteId, saldo, pago, onListo }: Props & { saldo: n
 
       <div className="mt-5 flex flex-wrap gap-3">
         <button type="submit" disabled={pendiente} className={`${BOTON} disabled:opacity-60`}>
-          {pendiente ? "Guardando..." : pago ? "Guardar cambios" : "Guardar pago"}
+          {pendiente ? "Guardando..." : pago ? "Guardar cambios" : partes.length > 1 ? "Guardar pagos" : "Guardar pago"}
         </button>
         <button type="button" onClick={onListo} className={BOTON_SECUNDARIO}>
           Cancelar

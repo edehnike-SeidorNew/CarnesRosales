@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { puede, ROL_LABEL, type Rol } from "@/lib/auth/roles";
-import { CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, ReceiptIcon, ShieldIcon, TagIcon, UsersIcon } from "./icons";
+import { BellIcon, CashIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, HomeIcon, MenuIcon, ReceiptIcon, ShieldIcon, TagIcon, UsersIcon } from "./icons";
 
 // Para sumar una sección nueva, agregá una entrada acá y su página en app/(app)/<ruta>.
 type IconType = (props: { className?: string }) => ReactNode;
@@ -16,6 +16,7 @@ const SECTIONS: NavItem[] = [
   { href: "/clientes", label: "Clientes", Icon: UsersIcon },
   { href: "/remitos", label: "Remitos", Icon: ReceiptIcon },
   { href: "/pagos", label: "Pagos", Icon: CashIcon },
+  { href: "/cobranzas", label: "Cobranzas", Icon: BellIcon },
   { href: "/productos", label: "Productos", Icon: TagIcon },
   { href: "/usuarios", label: "Usuarios", Icon: ShieldIcon, soloAdmin: true },
 ];
@@ -211,7 +212,7 @@ export function AppShell({ email, rol, mock, children }: { email: string; rol: R
           </span>
         )}
 
-        <main className="min-w-0 flex-1 rounded-t-3xl bg-slate-50 px-4 py-6 [scrollbar-color:#c3c6ea_transparent] [scrollbar-width:thin] md:h-full md:overflow-y-auto md:rounded-3xl md:py-8 md:pl-8 md:pr-4">
+        <main className="min-w-0 flex-1 bg-slate-50 p-4 [scrollbar-color:#c3c6ea_transparent] [scrollbar-width:thin] md:h-full md:overflow-y-auto md:rounded-3xl">
           {mock && (
             <p className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               Modo demo: Supabase no está configurado. Los datos son de ejemplo y lo que cargues se pierde al reiniciar.

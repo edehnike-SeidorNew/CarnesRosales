@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DateField } from "@/components/ui/DateField";
 import { PERIODOS, type Periodo } from "@/lib/formato";
 
 /** Pares etiqueta / valor, como en las cards laterales de Ezmel. */
@@ -55,26 +56,37 @@ export function Tarjeta({
   // Rojo apagado (no puro) para que acompañe al azul violeta de la app sin chocar; el texto blanco se lee bien encima.
   const color = alerta ? "border-[#b4424d] bg-[#b4424d] text-white" : "border-brand bg-brand text-white";
   return (
-    <div className={`rounded-2xl border p-4 ${destacada || alerta ? color : "border-brand-border bg-white"}`}>
+    <div className={`@container rounded-2xl border p-4 ${destacada || alerta ? color : "border-brand-border bg-white"}`}>
       <p className={`text-xs font-semibold uppercase tracking-wide ${destacada || alerta ? "text-white/80" : "text-slate-500"}`}>{titulo}</p>
-      <p className={`mt-1 break-words text-lg font-bold tabular-nums sm:text-xl ${destacada || alerta ? "text-white" : "text-slate-900"}`}>{valor}</p>
+      {/* El importe va siempre en una sola línea (con el $): si es largo, la letra se achica para que entre en la card. */}
+      <p
+        style={{ fontSize: `clamp(0.75rem, ${(100 / (valor.length * 0.58)).toFixed(1)}cqw, 1.25rem)` }}
+        className={`mt-1 whitespace-nowrap font-bold tabular-nums ${destacada || alerta ? "text-white" : "text-slate-900"}`}
+      >
+        {valor}
+      </p>
       {nota && <p className={`mt-0.5 text-xs ${destacada || alerta ? "text-white/80" : "text-slate-500"}`}>{nota}</p>}
     </div>
   );
 }
 
-/** Badges para elegir el período (semana, mes, trimestre, semestre, año). */
+/** Badges para elegir el período (hoy, semana, mes, trimestre, semestre, año o una fecha puntual con calendario). */
 export function FiltroPeriodo({
   periodo,
   onChange,
+  fecha,
+  onFecha,
   conTodo = true,
 }: {
   periodo: Periodo;
   onChange: (p: Periodo) => void;
+  /** Día elegido cuando el período es "Fecha". */
+  fecha: string;
+  onFecha: (f: string) => void;
   conTodo?: boolean;
 }) {
   return (
-    <div role="group" aria-label="Filtrar por período" className="flex flex-wrap gap-1.5">
+    <div role="group" aria-label="Filtrar por período" className="flex flex-wrap items-center gap-1.5">
       {PERIODOS.filter((p) => conTodo || p.id !== "todo").map(({ id, label }) => {
         const activo = id === periodo;
         return (
@@ -91,6 +103,12 @@ export function FiltroPeriodo({
           </button>
         );
       })}
+      {periodo === "fecha" && (
+        <div className="w-40">
+          {/* Se monta al elegir "Fecha": abre el calendario de una para elegir el día. */}
+          <DateField value={fecha} onChange={onFecha} ariaLabel="Fecha a mostrar" abrirAlMontar className="!py-1 text-xs" />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { kilos } from "@/lib/formato";
+import { fechaAR, kilos, pesos } from "@/lib/formato";
 import { redondear, subtotalItem, type Cliente, type Movimiento } from "@/lib/tipos";
 
 export type Remito = Extract<Movimiento, { tipo: "venta" }>;
@@ -51,4 +51,45 @@ export function nombreDeArchivo(texto: string): string {
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+/**
+ * Número para WhatsApp (wa.me): sólo dígitos, con 54 9 + código de área + número, sin el 0 ni el 15.
+ * Devuelve null si no alcanza (por ejemplo, falta el código de área).
+ */
+export function numeroWhatsApp(texto: string): string | null {
+  let d = texto.replace(/\D/g, "").replace(/^00/, "");
+  if (d.startsWith("54")) d = d.slice(2);
+  d = d.replace(/^0/, "");
+  if (d.startsWith("9") && d.length === 11) d = d.slice(1);
+  // Con el 15 de los celulares: código de área (2 a 4 dígitos) + 15 + número.
+  if (d.length === 12) {
+    for (const area of [2, 3, 4]) {
+      if (d.slice(area, area + 2) === "15") {
+        d = d.slice(0, area) + d.slice(area + 2);
+        break;
+      }
+    }
+  }
+  return d.length === 10 ? `549${d}` : null;
+}
+
+/** Primer número de teléfono que aparezca en el campo de contacto del cliente ("Juan 11 5555-1234" -> "11 5555-1234"). */
+export function telefonoDeContacto(contacto: string): string {
+  return /\+?\d[\d\s().-]{6,}\d/.exec(contacto)?.[0].trim() ?? "";
+}
+
+/** Mensaje de WhatsApp con el detalle del remito (por el link no se puede adjuntar el PDF). */
+export function mensajeWhatsApp(remito: Remito, cliente: Cliente): string {
+  const numero = remito.comprobante ? ` N° ${remito.comprobante}` : "";
+  const lineas = renglonesDeRemito(remito).map((r) => `• ${r.cantidad} ${r.descripcion} — ${pesos(r.importe)}`);
+  return [
+    `Hola ${cliente.nombreFantasia}! Te paso el remito${numero} del ${fechaAR(remito.fecha)} de Carnes Rosales:`,
+    "",
+    ...lineas,
+    "",
+    `Total: ${pesos(totalDeRemito(remito))}`,
+    "",
+    "Gracias por confiar en Carnes Rosales.",
+  ].join("\n");
 }

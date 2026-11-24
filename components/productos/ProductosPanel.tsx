@@ -48,15 +48,15 @@ function FilaProducto({ producto, rubros, editable }: { producto: Producto; rubr
 
   return (
     <tr className="border-t border-brand-border">
-      <td className={`${TD} font-medium text-slate-900`}>{producto.nombre}</td>
-      <td className={`${TD} w-60`}>
+      <td className={`${TD} titulo font-medium text-slate-900`}>{producto.nombre}</td>
+      <td data-label="Rubro" className={`${TD} w-60`}>
         {editable ? (
           <Select value={categoria} onChange={setCategoria} opciones={opciones} ariaLabel={`Rubro de ${producto.nombre}`} className="w-full" />
         ) : (
           <span className={producto.categoria ? "text-slate-800" : "text-slate-400"}>{producto.categoria || SIN_RUBRO}</span>
         )}
       </td>
-      <td className={`${TD} w-44 text-right`}>
+      <td data-label="Precio por kilo" className={`${TD} w-44 text-right`}>
         {editable ? (
           <CampoNumero value={precio} onChange={setPrecio} ariaLabel={`Precio por kilo de ${producto.nombre}`} placeholder="Sin precio" />
         ) : (
@@ -64,7 +64,7 @@ function FilaProducto({ producto, rubros, editable }: { producto: Producto; rubr
         )}
       </td>
       {editable && (
-        <td className={`${TD} w-44 whitespace-nowrap text-right`}>
+        <td className={`${TD} acciones w-44 whitespace-nowrap text-right`}>
           {cambio ? (
             <button
               type="button"
@@ -237,7 +237,7 @@ export function ProductosPanel({ productos, puedeEditar }: { productos: Producto
                 </button>
                 {/* Cerrado se esconde pero sigue en pantalla: así no se pierde lo que se estaba editando. */}
                 <div className={abierto ? "overflow-x-auto" : "hidden"}>
-                  <table className="w-full min-w-[640px] text-left text-sm">
+                  <table className="tabla-cards w-full min-w-[640px] text-left text-sm">
                     <tbody>
                       {lista.map((p) => (
                         <FilaProducto key={`${p.nombre}|${p.categoria}|${p.precio}`} producto={p} rubros={rubros} editable={puedeEditar} />

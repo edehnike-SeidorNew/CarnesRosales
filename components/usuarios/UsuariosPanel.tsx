@@ -91,7 +91,7 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
             {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
             <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${pendiente ? "opacity-60" : ""}`}>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-left text-sm">
+                <table className="tabla-cards w-full min-w-[640px] text-left text-sm">
                   <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
                     <tr>
                       <th className={`${TD} font-semibold`}>Usuario</th>
@@ -105,20 +105,20 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
                       const soyYo = m.id === yoId;
                       return (
                         <tr key={m.id}>
-                          <td className={TD}>
+                          <td className={`${TD} titulo bloque text-left`}>
                             <p className="font-semibold text-slate-900">
                               {m.email} {soyYo && <span className="font-normal text-slate-500">(vos)</span>}
                             </p>
                             {m.nombre && <p className="text-xs text-slate-500">{m.nombre}</p>}
                           </td>
-                          <td className={TD}>
+                          <td data-label="Rol" className={TD}>
                             {soyYo ? (
                               <span className="text-slate-800">{ROL_LABEL[m.rol]}</span>
                             ) : (
                               <Select value={m.rol} onChange={(nuevo) => correr(() => cambiarRolUsuario(m.id, nuevo), undefined, "Rol actualizado")} opciones={OPCIONES_ROL} ariaLabel={`Rol de ${m.email}`} disabled={pendiente} className="!w-44" />
                             )}
                           </td>
-                          <td className={TD}>
+                          <td data-label="Estado" className={TD}>
                             <span
                               className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
                                 m.activo ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : "bg-amber-50 text-amber-700 ring-amber-200"
@@ -127,7 +127,7 @@ export function UsuariosPanel({ miembros, invitaciones, yoId }: { miembros: Miem
                               {m.activo ? "Activo" : "Sin acceso"}
                             </span>
                           </td>
-                          <td className={`${TD} text-right`}>
+                          <td className={`${TD} acciones text-right`}>
                             {!soyYo && (
                               <button
                                 type="button"

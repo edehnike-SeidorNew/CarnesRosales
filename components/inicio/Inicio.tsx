@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FiltroPeriodo, Tarjeta } from "@/components/clientes/comunes";
 import { CardLateral, ColumnaLateral } from "@/components/layout/CardLateral";
 import { ChevronRightIcon, ScaleIcon } from "@/components/layout/icons";
-import { fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
+import { useFiltroPeriodo } from "@/components/comun/useFiltroPeriodo";
+import { describirRango, enPeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
 import { MEDIOS_PAGO, redondear, saldoDe, subtotalItem, type Cliente, type MedioPago, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 
 const NOMBRE_PERIODO: Record<Periodo, string> = {
   todo: "Todo el historial",
+  hoy: "Hoy",
+  fecha: "Día elegido",
   semana: "Esta semana",
+  semanaAnterior: "Semana anterior y actual",
   mes: "Este mes",
   trimestre: "Este trimestre",
   semestre: "Este semestre",
@@ -20,7 +24,10 @@ const NOMBRE_PERIODO: Record<Periodo, string> = {
 /** Para los títulos de las cards: "Total vendido este mes". */
 const EN_PERIODO: Record<Periodo, string> = {
   todo: "en total",
+  hoy: "hoy",
+  fecha: "ese día",
   semana: "esta semana",
+  semanaAnterior: "desde la semana anterior",
   mes: "este mes",
   trimestre: "este trimestre",
   semestre: "este semestre",
@@ -28,14 +35,25 @@ const EN_PERIODO: Record<Periodo, string> = {
 };
 
 const CARDS_INICIALES = 4;
+/** En celular arrancan sólo 2 cards por rubro. */
+const CARDS_INICIALES_CELULAR = 2;
 
 type CorteVendido = { nombre: string; kilos: number; importe: number };
 
-/** Un rubro: arranca con las 4 cards más vendidas, "Mostrar más" despliega el resto y el título abre o cierra todo el rubro. */
+/** Un rubro: arranca con las 4 cards más vendidas (2 en celular), "Mostrar más" despliega el resto y el título abre o cierra todo el rubro. */
 function SeccionRubro({ rubro, lista, kilosRubro }: { rubro: string; lista: CorteVendido[]; kilosRubro: number }) {
   const [abierto, setAbierto] = useState(true);
   const [verTodo, setVerTodo] = useState(false);
-  const visibles = verTodo ? lista : lista.slice(0, CARDS_INICIALES);
+  const [celular, setCelular] = useState(false);
+  useEffect(() => {
+    const consulta = window.matchMedia("(max-width: 767px)");
+    const actualizar = () => setCelular(consulta.matches);
+    actualizar();
+    consulta.addEventListener("change", actualizar);
+    return () => consulta.removeEventListener("change", actualizar);
+  }, []);
+  const iniciales = celular ? CARDS_INICIALES_CELULAR : CARDS_INICIALES;
+  const visibles = verTodo ? lista : lista.slice(0, iniciales);
   const ocultas = lista.length - visibles.length;
 
   return (
@@ -75,7 +93,7 @@ function SeccionRubro({ rubro, lista, kilosRubro }: { rubro: string; lista: Cort
               </div>
             ))}
           </div>
-          {lista.length > CARDS_INICIALES && (
+          {lista.length > iniciales && (
             <button
               type="button"
               onClick={() => setVerTodo((v) => !v)}
@@ -101,9 +119,8 @@ export function Inicio({
   /** Stock actual de cada corte del catálogo: cada uno tiene su card aunque no se haya vendido en el período. */
   stock: StockDeProducto[];
 }) {
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const desde = inicioDePeriodo(periodo);
-  const delPeriodo = desde ? movimientos.filter((m) => m.fecha >= desde) : movimientos;
+  const { periodo, fecha, setPeriodo, setFecha, desde, hasta } = useFiltroPeriodo("mes");
+  const delPeriodo = movimientos.filter((m) => enPeriodo(m.fecha, desde, hasta));
 
   // Ventas: importe, kilos y desglose por corte.
   const porCorte = new Map<string, { nombre: string; kilos: number; importe: number }>();
@@ -199,11 +216,11 @@ export function Inicio({
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-2">
           <h1 className="text-2xl font-bold text-brand">Inicio</h1>
-          <FiltroPeriodo periodo={periodo} onChange={setPeriodo} conTodo={false} />
+          <FiltroPeriodo periodo={periodo} onChange={setPeriodo} fecha={fecha} onFecha={setFecha} conTodo={false} />
         </div>
         <p className="mb-6 text-sm text-slate-500">
           {NOMBRE_PERIODO[periodo]}
-          {desde ? ` · desde el ${fechaAR(desde)}` : ""}
+          {desde ? ` · ${describirRango(desde, hasta)}` : ""}
         </p>
 
         <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

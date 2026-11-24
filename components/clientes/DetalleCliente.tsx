@@ -6,15 +6,18 @@ import { eliminarMovimiento } from "@/app/acciones";
 import { useAccion } from "@/components/comun/useAccion";
 import { useNotificaciones } from "@/components/ui/Notificaciones";
 import { CardLateral } from "@/components/layout/CardLateral";
-import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, EyeIcon, PlusIcon, PrinterIcon, ReceiptIcon, TagIcon, TrashIcon } from "@/components/layout/icons";
+import { CashIcon, ChevronLeftIcon, DownloadIcon, HistoryIcon, PencilIcon, EyeIcon, PlusIcon, PrinterIcon, ReceiptIcon, TagIcon, TrashIcon, WhatsAppIcon } from "@/components/layout/icons";
+import { FormCobro } from "@/components/cobranzas/FormCobro";
+import { deudaDeCliente } from "@/lib/cobranzas";
 import { PanelOpciones, type OpcionPanel } from "@/components/layout/PanelOpciones";
-import { BOTON_SECUNDARIO, fechaAR, inicioDePeriodo, kilos, pesos, type Periodo } from "@/lib/formato";
+import { useFiltroPeriodo } from "@/components/comun/useFiltroPeriodo";
+import { BOTON_SECUNDARIO, describirRango, enPeriodo, fechaAR, hoyISO, kilos, pesos } from "@/lib/formato";
 import { efectoEnSaldo, etiquetaMedio, redondear, subtotalItem, type Cliente, type Movimiento, type StockDeProducto } from "@/lib/tipos";
 import { Autor, FiltroPeriodo, Iniciales, Lista, Tarjeta, Vacio } from "./comunes";
 import { FormCliente } from "./FormCliente";
 import { FormCargo, FormDescuento, FormPago, FormVenta } from "./Formularios";
 
-type VistaId = "historial" | "venta" | "pago" | "descuento" | "cargo" | "editar";
+type VistaId = "historial" | "venta" | "pago" | "descuento" | "cargo" | "cobro" | "editar";
 
 const OPCIONES: (OpcionPanel<VistaId> & { titulo: string; requiereCargar: boolean })[] = [
   { id: "historial", label: "Historial", titulo: "Historial de movimientos", Icon: HistoryIcon, requiereCargar: false },
@@ -22,6 +25,7 @@ const OPCIONES: (OpcionPanel<VistaId> & { titulo: string; requiereCargar: boolea
   { id: "pago", label: "Registrar pago", titulo: "Registrar pago", Icon: CashIcon, requiereCargar: true },
   { id: "descuento", label: "Registrar descuento", titulo: "Registrar descuento", Icon: TagIcon, requiereCargar: true },
   { id: "cargo", label: "Registrar cargo", titulo: "Registrar cargo", Icon: PlusIcon, requiereCargar: true },
+  { id: "cobro", label: "Aviso por WhatsApp", titulo: "Aviso de cobro por WhatsApp", Icon: WhatsAppIcon, requiereCargar: false },
   { id: "editar", label: "Editar cliente", titulo: "Editar cliente", Icon: PencilIcon, requiereCargar: true },
 ];
 
@@ -68,7 +72,7 @@ function Historial({
       {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
       <section className={`overflow-hidden rounded-lg border border-brand-border bg-white ${pendiente ? "opacity-60" : ""}`}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] text-left text-sm">
+          <table className="tabla-cards tabla-cards-grupo w-full min-w-[1100px] text-left text-sm">
             <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand [&_th]:align-middle">
               <tr>
                 <th className={`${TD} font-semibold`}>Fecha</th>
@@ -98,54 +102,61 @@ function Historial({
               const ultimo = renglones.length - 1;
               const importe = efectoEnSaldo(m);
 
+              const botones = (
+                <>
+                  {m.tipo === "venta" && (
+                    <Link href={`/remitos/${m.id}`} aria-label="Ver remito" title="Ver remito" className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-brand-soft hover:text-brand">
+                      <EyeIcon className="h-4 w-4" />
+                    </Link>
+                  )}
+                  {puedeCargar && m.tipo !== "saldo_inicial" && (
+                    <button
+                      type="button"
+                      onClick={() => onEditar(m)}
+                      aria-label="Corregir movimiento"
+                      title="Corregir"
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-brand-soft hover:text-brand"
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                  {puedeBorrar && (
+                    <button
+                      type="button"
+                      onClick={() => borrar(m)}
+                      disabled={pendiente}
+                      aria-label="Eliminar movimiento"
+                      title="Eliminar"
+                      className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                </>
+              );
+
               return (
                 // Un tbody por movimiento: una venta con varios productos se lee como un solo bloque.
                 <tbody key={m.id} className="border-t border-brand-border">
                   {renglones.map((r, i) => (
                     <tr key={i} className={m.tipo === "pago" ? "bg-emerald-50/50" : m.tipo === "descuento" ? "bg-amber-50/60" : m.tipo === "cargo" ? "bg-sky-50/70" : ""}>
-                      <td className={`${TD} whitespace-nowrap text-slate-800`}>{i === 0 ? fechaAR(m.fecha) : ""}</td>
-                      <td className={`${TD} max-w-[6rem] truncate text-slate-500`} title={i === 0 ? m.comprobante : undefined}>{i === 0 ? m.comprobante : ""}</td>
-                      <td className={`${TD} max-w-[14rem] truncate font-medium ${m.tipo === "pago" ? "text-emerald-800" : m.tipo === "descuento" ? "text-amber-800" : m.tipo === "cargo" ? "text-sky-800" : "text-slate-900"}`} title={r.detalle}>{r.detalle}</td>
-                      <td className={`${TD} whitespace-nowrap ${m.tipo === "pago" && m.medioPago ? "text-slate-800" : "text-slate-400"}`}>
+                      <td data-label="Fecha" className={`${TD} titulo g-inicio whitespace-nowrap text-slate-800`}>{i === 0 ? fechaAR(m.fecha) : ""}</td>
+                      <td data-label="N° comprobante" className={`${TD} g-inicio max-w-[6rem] truncate text-slate-500`} title={i === 0 ? m.comprobante : undefined}>{i === 0 ? m.comprobante : ""}</td>
+                      <td data-label="Concepto" className={`${TD} max-w-[14rem] truncate font-medium ${m.tipo === "pago" ? "text-emerald-800" : m.tipo === "descuento" ? "text-amber-800" : m.tipo === "cargo" ? "text-sky-800" : "text-slate-900"}`} title={r.detalle}>{r.detalle}</td>
+                      <td data-label="Medio de pago" className={`${TD} g-inicio whitespace-nowrap ${m.tipo === "pago" && m.medioPago ? "text-slate-800" : "text-slate-400"}`}>
                         {m.tipo === "pago" ? etiquetaMedio(m.medioPago) : ""}
                       </td>
-                      <td className={`${NUM} text-slate-800`}>{r.kilos}</td>
-                      <td className={`${NUM} text-slate-800`}>{r.precio}</td>
-                      <td className={`${NUM} text-slate-800`}>{r.subtotal}</td>
-                      <td className={`${NUM} text-slate-900`}>{i === ultimo && importe > 0 ? pesos(importe) : ""}</td>
-                      <td className={`${NUM} font-semibold ${m.tipo === "descuento" ? "text-amber-700" : "text-emerald-700"}`}>{i === ultimo && importe < 0 ? pesos(-importe) : ""}</td>
-                      <td className={`${NUM} font-semibold text-slate-900`}>{i === ultimo ? pesos(saldo) : ""}</td>
-                      <td className={`${TD} max-w-[6.5rem] truncate text-xs text-slate-500`}>{i === 0 && <Autor email={m.creadoPor} />}</td>
-                      <td className="whitespace-nowrap pr-2 text-right">
-                        {i === 0 && m.tipo === "venta" && (
-                          <Link href={`/remitos/${m.id}`} aria-label="Ver remito" title="Ver remito" className="inline-flex rounded-md p-1.5 text-slate-400 hover:bg-brand-soft hover:text-brand">
-                            <EyeIcon className="h-4 w-4" />
-                          </Link>
-                        )}
-                        {i === 0 && puedeCargar && m.tipo !== "saldo_inicial" && (
-                          <button
-                            type="button"
-                            onClick={() => onEditar(m)}
-                            aria-label="Corregir movimiento"
-                            title="Corregir"
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-brand-soft hover:text-brand"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                        {i === 0 && puedeBorrar && (
-                          <button
-                            type="button"
-                            onClick={() => borrar(m)}
-                            disabled={pendiente}
-                            aria-label="Eliminar movimiento"
-                            title="Eliminar"
-                            className="rounded-md p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-700"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                      </td>
+                      <td data-label="Kilos" className={`${NUM} text-slate-800`}>{r.kilos}</td>
+                      <td data-label="Precio por kilo" className={`${NUM} text-slate-800`}>{r.precio}</td>
+                      <td data-label="Subtotal" className={`${NUM} text-slate-800`}>{r.subtotal}</td>
+                      <td data-label="Total compra" className={`${NUM} g-fin text-slate-900`}>{i === ultimo && importe > 0 ? pesos(importe) : ""}</td>
+                      <td data-label="Pago entrante" className={`${NUM} g-fin font-semibold ${m.tipo === "descuento" ? "text-amber-700" : "text-emerald-700"}`}>{i === ultimo && importe < 0 ? pesos(-importe) : ""}</td>
+                      <td data-label="Saldo adeudado" className={`${NUM} g-fin font-semibold text-slate-900`}>{i === ultimo ? pesos(saldo) : ""}</td>
+                      <td data-label="Cargó" className={`${TD} solo-escritorio max-w-[6.5rem] truncate text-xs text-slate-500`}>{i === 0 && <Autor email={m.creadoPor} />}</td>
+                      <td className="acciones solo-escritorio whitespace-nowrap pr-2 text-right">{i === 0 && botones}</td>
+                      {/* En celular quien cargó y los botones van al final de la card, después del total y el saldo. */}
+                      <td data-label="Cargó" className={`${TD} g-fin solo-celular text-xs text-slate-500`}>{i === ultimo && <Autor email={m.creadoPor} />}</td>
+                      <td className="acciones solo-celular whitespace-nowrap pr-2 text-right">{i === ultimo && botones}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -166,6 +177,7 @@ export function DetalleCliente({
   puedeCargar,
   puedeBorrar,
   vistaInicial,
+  editarId,
 }: {
   cliente: Cliente;
   /** Sólo los movimientos de este cliente. */
@@ -175,10 +187,14 @@ export function DetalleCliente({
   puedeBorrar: boolean;
   /** Pantalla con la que abre (sólo si puede cargar): por ejemplo la venta, al venir de Nuevo remito. */
   vistaInicial?: VistaId;
+  /** Venta que se abre para corregir (al venir de Remitos > Editar). */
+  editarId?: string;
 }) {
-  const [vista, setVista] = useState<VistaId>(puedeCargar && vistaInicial ? vistaInicial : "historial");
-  const [editando, setEditando] = useState<Movimiento | null>(null);
-  const [periodo, setPeriodo] = useState<Periodo>("todo");
+  const [vista, setVista] = useState<VistaId>(vistaInicial && (puedeCargar || vistaInicial === "cobro") ? vistaInicial : "historial");
+  const [editando, setEditando] = useState<Movimiento | null>(() =>
+    puedeCargar && editarId ? (movimientos.find((m) => m.id === editarId && m.tipo === "venta") ?? null) : null,
+  );
+  const { periodo, fecha, setPeriodo, setFecha, desde, hasta } = useFiltroPeriodo("todo");
 
   // Orden cronológico; a igual fecha, en el orden en que se cargaron.
   const propios = movimientos
@@ -209,8 +225,7 @@ export function DetalleCliente({
   const cantidadDescuentos = propios.filter(({ m }) => m.tipo === "descuento").length;
 
   // El filtro sólo recorta lo que se muestra: el saldo de cada fila sigue siendo el acumulado real.
-  const desde = inicioDePeriodo(periodo);
-  const visibles = desde ? filas.filter(({ m }) => m.fecha >= desde) : filas;
+  const visibles = filas.filter(({ m }) => enPeriodo(m.fecha, desde, hasta));
   const delPeriodo = (tipo: Movimiento["tipo"]) =>
     visibles.reduce((total, { m }) => (m.tipo === tipo ? total + Math.abs(efectoEnSaldo(m)) : total), 0);
 
@@ -283,11 +298,11 @@ export function DetalleCliente({
           <h2 className="text-lg font-bold text-brand">{titulo}</h2>
           {vista === "historial" && !editando && (
             <>
-              <FiltroPeriodo periodo={periodo} onChange={setPeriodo} />
+              <FiltroPeriodo periodo={periodo} onChange={setPeriodo} fecha={fecha} onFecha={setFecha} />
               {/* El PDF respeta el período elegido: con "Semana" trae sólo los movimientos de la semana. */}
               <div className="ml-auto flex flex-wrap gap-2">
                 <a
-                  href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}&ver=1`}
+                  href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}&fecha=${fecha}&ver=1`}
                   target="_blank"
                   rel="noopener"
                   className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}
@@ -297,7 +312,7 @@ export function DetalleCliente({
                   Imprimir
                 </a>
                 <a
-                  href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}`}
+                  href={`/api/clientes/${cliente.id}/resumen?periodo=${periodo}&fecha=${fecha}`}
                   className={`${BOTON_SECUNDARIO} !px-3 !py-1.5`}
                   title="Descargar el resumen del período elegido para enviarle al cliente"
                 >
@@ -311,7 +326,7 @@ export function DetalleCliente({
 
         {vista === "historial" && !editando && desde && (
           <p className="mb-3 text-sm text-slate-600">
-            Desde el {fechaAR(desde)}: compras <strong className="text-slate-900">{pesos(delPeriodo("venta"))}</strong> · pagos{" "}
+            {describirRango(desde, hasta).replace(/^./, (c) => c.toUpperCase())}: compras <strong className="text-slate-900">{pesos(delPeriodo("venta"))}</strong> · pagos{" "}
             <strong className="text-emerald-700">{pesos(delPeriodo("pago"))}</strong>
             {delPeriodo("descuento") > 0 && (
               <>
@@ -333,6 +348,7 @@ export function DetalleCliente({
         {!editando && vista === "pago" && <FormPago clienteId={cliente.id} saldo={saldo} onListo={volver} />}
         {!editando && vista === "descuento" && <FormDescuento clienteId={cliente.id} saldo={saldo} onListo={volver} />}
         {!editando && vista === "cargo" && <FormCargo clienteId={cliente.id} saldo={saldo} onListo={volver} />}
+        {!editando && vista === "cobro" && <FormCobro cliente={cliente} deuda={deudaDeCliente(cliente, movimientos, hoyISO())} />}
         {!editando && vista === "editar" && (
           <FormCliente
             cliente={cliente}

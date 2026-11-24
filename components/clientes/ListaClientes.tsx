@@ -139,7 +139,7 @@ export function ListaClientes({
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] text-left text-sm">
+              <table className="tabla-cards w-full min-w-[680px] text-left text-sm">
                 <thead className="bg-brand-soft text-xs uppercase tracking-wide text-brand">
                   <tr>
                     <th className="w-12 px-4 py-3 font-semibold">N°</th>
@@ -158,9 +158,9 @@ export function ListaClientes({
                       onKeyDown={(e) => e.key === "Enter" && router.push(`/clientes/${c.id}`)}
                       className="cursor-pointer hover:bg-brand-soft/60 focus:bg-brand-soft/60 focus:outline-none"
                     >
-                      <td className="px-4 py-3 text-slate-500">{c.numero}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                      <td data-label="N°" className="px-4 py-3 text-slate-500">{c.numero}</td>
+                      <td className="titulo px-4 py-3">
+                        <div className="flex items-center gap-3 text-left">
                           <Iniciales nombre={c.nombreFantasia} className="h-9 w-9 text-sm" />
                           <div>
                             <p className="font-semibold text-slate-900">{c.nombreFantasia}</p>
@@ -168,18 +168,18 @@ export function ListaClientes({
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-800">{c.localidad || "—"}</td>
-                      <td className="px-4 py-3">
+                      <td data-label="Localidad" className="px-4 py-3 text-slate-800">{c.localidad || "—"}</td>
+                      <td data-label="Último pago" className="px-4 py-3">
                         {pago ? (
-                          <>
+                          <div>
                             <p className="text-slate-800">{fechaAR(pago.fecha)}</p>
                             <p className="text-xs tabular-nums text-slate-500">{pesos(pago.importe)}</p>
-                          </>
+                          </div>
                         ) : (
                           <span className="text-slate-400">Sin pagos</span>
                         )}
                       </td>
-                      <td className={`px-4 py-3 text-right font-semibold tabular-nums ${saldo > 0 ? "text-slate-900" : "text-slate-400"}`}>
+                      <td data-label="Saldo adeudado" className={`px-4 py-3 text-right font-semibold tabular-nums ${saldo > 0 ? "text-slate-900" : "text-slate-400"}`}>
                         {pesos(saldo)}
                       </td>
                     </tr>

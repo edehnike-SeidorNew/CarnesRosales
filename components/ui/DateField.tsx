@@ -29,17 +29,20 @@ export function DateField({
   onChange,
   ariaLabel = "Fecha",
   className = "",
+  abrirAlMontar = false,
 }: {
   value: string;
   onChange: (valor: string) => void;
   ariaLabel?: string;
   className?: string;
+  /** Abre el calendario apenas aparece el campo. */
+  abrirAlMontar?: boolean;
 }) {
   const selected = parseIso(value);
   const now = new Date();
   const today = { y: now.getFullYear(), m: now.getMonth(), d: now.getDate() };
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(abrirAlMontar);
   const [view, setView] = useState({ y: (selected ?? today).y, m: (selected ?? today).m });
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -55,6 +58,11 @@ export function DateField({
     const left = Math.max(12, Math.min(r.left, window.innerWidth - 288 - 12));
     setPos({ top, left });
   }, []);
+
+  // Si arranca abierto, se acomoda debajo del campo apenas se dibuja.
+  useEffect(() => {
+    if (abrirAlMontar) place();
+  }, [abrirAlMontar, place]);
 
   useEffect(() => {
     if (!open) return;

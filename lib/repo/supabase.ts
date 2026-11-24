@@ -245,6 +245,23 @@ export const repoSupabase: Repo = {
     comprobar(error);
   },
 
+  async crearPagos(pagos) {
+    const db = await createClient();
+    // Un solo insert con todas las filas: la base los guarda juntos o no guarda ninguno.
+    const { error } = await db.from("movimientos").insert(
+      pagos.map((m) => ({
+        cliente_id: m.clienteId,
+        fecha: m.fecha,
+        tipo: "pago" as const,
+        comprobante: m.comprobante,
+        importe: m.tipo === "pago" ? m.importe : 0,
+        medio_pago: m.tipo === "pago" ? m.medioPago : null,
+        nota: "",
+      })),
+    );
+    comprobar(error);
+  },
+
   async actualizarMovimiento(id, cambios) {
     const db = await createClient();
     if (cambios.tipo === "venta") {

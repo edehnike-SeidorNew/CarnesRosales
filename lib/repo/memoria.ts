@@ -108,6 +108,11 @@ export const repoMemoria: Repo = {
     estado.movimientos.push(movimiento);
   },
 
+  async crearPagos(pagos) {
+    const creadoPor = await quien();
+    for (const datos of pagos) estado.movimientos.push({ ...datos, id: nuevoId("m"), creadoPor } as Movimiento);
+  },
+
   async actualizarMovimiento(id, cambios) {
     estado.movimientos = estado.movimientos.map((m) => {
       if (m.id !== id || m.tipo !== cambios.tipo) return m;

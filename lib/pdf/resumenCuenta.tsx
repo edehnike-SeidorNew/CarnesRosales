@@ -1,6 +1,7 @@
-import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { fechaAR, kilos, pesos } from "@/lib/formato";
+import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { describirRango, enPeriodo, fechaAR, kilos, pesos } from "@/lib/formato";
 import { efectoEnSaldo, etiquetaMedio, redondear, subtotalItem, type Cliente, type Movimiento } from "@/lib/tipos";
+import { LOGO_PDF } from "./logoPdf";
 
 const MARCA = "#2b2d6e";
 const BORDE = "#cfd2ec";
@@ -16,7 +17,7 @@ const s = StyleSheet.create({
   nombre: { fontSize: 12, fontFamily: "Helvetica-Bold", marginBottom: 3 },
   resumen: { flexDirection: "row", gap: 8, marginBottom: 14 },
   caja: { flex: 1, borderWidth: 1, borderColor: BORDE, borderRadius: 6, padding: 8 },
-  cajaFuerte: { flex: 1, backgroundColor: MARCA, borderRadius: 6, padding: 8 },
+  cajaFuerte: { width: 220, backgroundColor: MARCA, borderRadius: 6, padding: 8 },
   etiqueta: { fontSize: 7, color: "#64748b", marginBottom: 3 },
   valor: { fontSize: 12, fontFamily: "Helvetica-Bold" },
   fila: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDE, paddingVertical: 4, paddingHorizontal: 4 },
@@ -35,36 +36,36 @@ export type DatosResumen = {
   movimientos: Movimiento[];
   /** AAAA-MM-DD desde el que se listan los movimientos (null = todos). */
   desde: string | null;
+  /** AAAA-MM-DD hasta el que se listan (null = hasta hoy); sirve para un día puntual. */
+  hasta?: string | null;
   /** AAAA-MM-DD de emisión. */
   hoy: string;
 };
 
-function ResumenCuenta({ cliente, movimientos, desde, hoy }: DatosResumen) {
+function ResumenCuenta({ cliente, movimientos, desde, hasta = null, hoy }: DatosResumen) {
   let acumulado = 0;
   const filas = movimientos.map((m) => {
     acumulado = redondear(acumulado + efectoEnSaldo(m));
     return { m, saldo: acumulado };
   });
   const saldo = acumulado;
-  const visibles = desde ? filas.filter(({ m }) => m.fecha >= desde) : filas;
-  // Lo que debía antes del período: el saldo de la última fila que queda afuera.
-  const saldoPrevio = desde ? (filas.filter(({ m }) => m.fecha < desde).at(-1)?.saldo ?? 0) : 0;
-  const sumar = (tipo: Movimiento["tipo"]) => redondear(visibles.reduce((t, { m }) => (m.tipo === tipo ? t + Math.abs(efectoEnSaldo(m)) : t), 0));
-
-  // Lo que ya debía antes de lo que se lista: saldo previo al período más el saldo inicial cargado.
-  const saldoAnterior = redondear(saldoPrevio + sumar("saldo_inicial"));
+  const visibles = filas.filter(({ m }) => enPeriodo(m.fecha, desde, hasta));
 
   return (
     <Document title={`Resumen de cuenta - ${cliente.nombreFantasia}`} author="Carnes Rosales">
       <Page size="A4" style={s.pagina}>
         <View style={s.cabecera}>
-          <View>
-            <Text style={s.marca}>Carnes Rosales</Text>
-            <Text style={s.tenue}>Resumen de cuenta corriente</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no admite alt */}
+            <Image src={LOGO_PDF} style={{ width: 54, height: 54 }} />
+            <View>
+              <Text style={s.marca}>Carnes Rosales</Text>
+              <Text style={s.tenue}>Resumen de cuenta corriente</Text>
+            </View>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={s.titulo}>Emitido el {fechaAR(hoy)}</Text>
-            <Text style={s.tenue}>{desde ? `Movimientos desde el ${fechaAR(desde)}` : "Todos los movimientos"}</Text>
+            <Text style={s.tenue}>{desde ? `Movimientos ${describirRango(desde, hasta)}` : "Todos los movimientos"}</Text>
           </View>
         </View>
 
@@ -82,27 +83,8 @@ function ResumenCuenta({ cliente, movimientos, desde, hoy }: DatosResumen) {
           </Text>
         </View>
 
+        {/* Sólo el saldo adeudado: el detalle de compras y pagos está en la tabla de abajo. */}
         <View style={s.resumen}>
-          {saldoAnterior !== 0 && (
-            <View style={s.caja}>
-              <Text style={s.etiqueta}>{desde ? "SALDO ANTERIOR AL PERÍODO" : "SALDO ANTERIOR"}</Text>
-              <Text style={s.valor}>{pesos(saldoAnterior)}</Text>
-            </View>
-          )}
-          <View style={s.caja}>
-            <Text style={s.etiqueta}>COMPRAS</Text>
-            <Text style={s.valor}>{pesos(sumar("venta"))}</Text>
-          </View>
-          <View style={s.caja}>
-            <Text style={s.etiqueta}>PAGOS</Text>
-            <Text style={s.valor}>{pesos(sumar("pago"))}</Text>
-          </View>
-          {sumar("descuento") > 0 && (
-            <View style={s.caja}>
-              <Text style={s.etiqueta}>DESCUENTOS</Text>
-              <Text style={s.valor}>{pesos(sumar("descuento"))}</Text>
-            </View>
-          )}
           <View style={s.cajaFuerte}>
             <Text style={[s.etiqueta, { color: "#cfd2ec" }]}>SALDO ADEUDADO A HOY</Text>
             <Text style={[s.valor, { color: "#ffffff" }]}>{pesos(saldo)}</Text>

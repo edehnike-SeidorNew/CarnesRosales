@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { esRol, puede, type Permiso } from "@/lib/auth/roles";
 import { getServerSession, tieneAcceso } from "@/lib/auth/session";
 import { repo } from "@/lib/repo";
-import { esMedioPago, redondear, type ItemVenta, type NuevoCliente } from "@/lib/tipos";
+import { esMedioPago, redondear, type ItemVenta, type MedioPago, type NuevoCliente } from "@/lib/tipos";
 
 export type Resultado<T = null> = { ok: true; dato: T } | { ok: false; error: string };
 
@@ -151,6 +151,38 @@ export async function registrarPago(clienteId: string, datos: DatosPago): Promis
       importe: redondear(datos.importe),
       medioPago,
     });
+    return null;
+  });
+}
+
+/**
+ * Un cobro dividido en varios medios de pago (por ejemplo, parte en efectivo, parte en cheque y parte por billetera virtual).
+ * Se guarda un pago por cada medio, todos con la misma fecha y el mismo N° de recibo, y se guardan juntos o ninguno.
+ */
+export async function registrarPagos(
+  clienteId: string,
+  datos: { fecha: string; comprobante: string; partes: { importe: number; medioPago: string }[] },
+): Promise<Resultado> {
+  if (!texto(clienteId)) return error("Falta el cliente.");
+  if (!FECHA.test(datos?.fecha ?? "")) return error("Elegí la fecha.");
+  const partes = Array.isArray(datos.partes) ? datos.partes : [];
+  if (partes.length === 0 || partes.length > 10) return error("Cargá entre 1 y 10 medios de pago.");
+  for (const parte of partes) {
+    if (!positivo(parte?.importe)) return error("Ingresá el importe de cada medio de pago.");
+    if (!esMedioPago(parte.medioPago)) return error("Elegí el medio de pago de cada renglón.");
+  }
+  const comprobante = texto(datos.comprobante, 40);
+  return ejecutar("cargar", async () => {
+    await repo().crearPagos(
+      partes.map((parte) => ({
+        clienteId,
+        fecha: datos.fecha,
+        tipo: "pago" as const,
+        comprobante,
+        importe: redondear(parte.importe),
+        medioPago: parte.medioPago as MedioPago,
+      })),
+    );
     return null;
   });
 }
